@@ -20,6 +20,40 @@ namespace BikeSharing.Models
         {
             return new MySqlConnection(ConnectionString);
         }
+
+        public Client Login(string Email, string Password)
+        {
+            Client client = null;
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@someEmail) " +
+                "and password = (@somePassword)", conn);
+                cmd.Parameters.AddWithValue("@someEmail", Email);
+                cmd.Parameters.AddWithValue("@somePassword", Password);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        client = new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"]),
+                            PhoneNumberId = Convert.ToInt32(reader["id_phonenumber"]),
+                            AddressId = Convert.ToInt32(reader["id_address"]),
+                            PassportId = Convert.ToInt32(reader["id_passport"]),
+                            Email = reader["email"].ToString(),
+                            Money = Convert.ToInt32(reader["money"])
+                        };
+                    }
+                }
+            }            
+            return client;
+        }
+
+
         public List<Client> GetAllUsers()
         {
             List<Client> clients = new List<Client>();
@@ -37,9 +71,10 @@ namespace BikeSharing.Models
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
                             PatronymicId = Convert.ToInt32(reader["id_name3"]),
-                            PhoneNumberId = Convert.ToInt32(reader["phonenumber"]),
+                            PhoneNumberId = Convert.ToInt32(reader["id_phonenumber"]),
                             AddressId = Convert.ToInt32(reader["id_address"]),
                             PassportId = Convert.ToInt32(reader["id_passport"]),
+                            Email = reader["email"].ToString(),
                             Money = Convert.ToInt32(reader["money"])
                         }); ;
                     }
@@ -224,50 +259,6 @@ namespace BikeSharing.Models
             return streets;
         }
 
-        public List<OperatorCode> GetAllOperatorCodes()
-        {
-            List<OperatorCode> codes = new List<OperatorCode>();
-            using (MySqlConnection conn = GetConnection())
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from operatorcode", conn);
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        codes.Add(new OperatorCode()
-                        {
-                            Id = Convert.ToInt32(reader["id"]),
-                            Code = Convert.ToInt32(reader["operatorcode"])
-                        });
-                    }
-                }
-            }
-            return codes;
-        }
-
-        public List<CountryCode> GetAllCountryCodes()
-        {
-            List<CountryCode> codes = new List<CountryCode>();
-            using (MySqlConnection conn = GetConnection())
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from countrycode", conn);
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        codes.Add(new CountryCode()
-                        {
-                            Id = Convert.ToInt32(reader["id"]),
-                            Code = Convert.ToInt32(reader["countrycode"])
-                        });
-                    }
-                }
-            }
-            return codes;
-        }
-
         public List<PhoneNumber> GetAllPhoneNumbers()
         {
             List<PhoneNumber> phoneNumbers = new List<PhoneNumber>();
@@ -281,11 +272,8 @@ namespace BikeSharing.Models
                     {
                         phoneNumbers.Add(new PhoneNumber()
                         {
-                            Id = Convert.ToInt32(reader["id"]),
-                            Number = Convert.ToInt32(reader["phonenumber"])
-                            /*CountryCodeId = Convert.ToInt32(reader["countrycode"]),
-                            OperatorCode
-                            Code = Convert.ToInt32(reader["countrycode"])*/
+                            Id = Convert.ToInt32(reader["idPhoneNumber"]),
+                            Number = reader["phonenumber"].ToString()
                         });
                     }
                 }
