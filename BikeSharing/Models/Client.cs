@@ -28,8 +28,8 @@ namespace BikeSharing.Models
         public int PatronymicId { get; set; }
 
         [Display(Name = "Мобильный телефон")]
-        public PhoneNumber PhoneNumber { get; set; }
-        public int PhoneNumberId { get; set; }
+        [DataType(DataType.PhoneNumber)]
+        public string PhoneNumber { get; set; }
 
         public Address Address { get; set; }
         public int AddressId { get; set; }

@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using BikeSharing.Models;
 using BikeSharing.ViewModels;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BikeSharing.Controllers
@@ -19,6 +22,11 @@ namespace BikeSharing.Controllers
                         GetService(typeof(ApplicationContext)) as ApplicationContext;
         }
 
+        public IActionResult Index()
+        {
+            return View();
+        }
+
         [HttpGet]
         public IActionResult Login()
         {
@@ -27,13 +35,14 @@ namespace BikeSharing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Login(LoginModel model)
+        public async Task<IActionResult> Login(LoginModel model)
         {
             if (ModelState.IsValid)
             {
-                Client client = context.Login(model.Email, model.Password);
+                Client client = context.Login(model);
                 if (client != null)
                 {
+                    await Authenticate(model.Email);
                     return RedirectToAction("Index", "Home");
                 }
                 ModelState.AddModelError("", "Некорректные логин и(или) пароль");
@@ -49,24 +58,35 @@ namespace BikeSharing.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Register(RegisterModel model)
+        public async Task<IActionResult> Register(RegisterModel model)
         {
             if (ModelState.IsValid)
             {
-                Client client = context.Login(model.Email, model.Password);
-                if (client == null)
+                if (context.Register(model))
                 {
-
+                    await Authenticate(model.Email);
+                    return RedirectToAction("Index", "Home");
                 }
-            }
-            else
-                ModelState.AddModelError("", "Некорректные логин и(или) пароль");
+                else
+                    ModelState.AddModelError("", "Некорректные логин и(или) пароль");
+            }            
             return View(model);
         }
+        
+        private async Task Authenticate(string userName)
+        {            
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimsIdentity.DefaultNameClaimType, userName)
+            };            
+            ClaimsIdentity id = new ClaimsIdentity(claims, "ApplicationCookie", ClaimsIdentity.DefaultNameClaimType, ClaimsIdentity.DefaultRoleClaimType);            
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(id));
+        }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Logout()
         {
-            return View();
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            return RedirectToAction("Login", "Account");
         }
     }
 }

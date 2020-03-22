@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using BikeSharing.ViewModels;
+using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,7 @@ namespace BikeSharing.Models
             return new MySqlConnection(ConnectionString);
         }
 
-        public Client Login(string Email, string Password)
+        public Client Login(LoginModel model)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
@@ -29,8 +30,8 @@ namespace BikeSharing.Models
                 conn.Open();
                 MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@someEmail) " +
                 "and password = (@somePassword)", conn);
-                cmd.Parameters.AddWithValue("@someEmail", Email);
-                cmd.Parameters.AddWithValue("@somePassword", Password);
+                cmd.Parameters.AddWithValue("@someEmail", model.Email);
+                cmd.Parameters.AddWithValue("@somePassword", model.Password);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -41,7 +42,7 @@ namespace BikeSharing.Models
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
                             PatronymicId = Convert.ToInt32(reader["id_name3"]),
-                            PhoneNumberId = Convert.ToInt32(reader["id_phonenumber"]),
+                            PhoneNumber = reader["phonenumber"].ToString(),
                             AddressId = Convert.ToInt32(reader["id_address"]),
                             PassportId = Convert.ToInt32(reader["id_passport"]),
                             Email = reader["email"].ToString(),
@@ -49,10 +50,46 @@ namespace BikeSharing.Models
                         };
                     }
                 }
-            }            
+            }
             return client;
         }
 
+        public bool Register(RegisterModel model)
+        {
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select email from clients", conn);                
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (reader["email"].ToString() == model.Email)                        
+                            return false;                        
+                    }
+                }
+                using (var transaction = conn.BeginTransaction())
+                {
+                    var insertCommand = conn.CreateCommand();
+                    insertCommand.CommandText = "insert into clients (email, password) values(@email,@password)" +
+                                            "insert into clients(id_name1, id_name2, id_name3)" +
+                                            "select name1.id, name2.id, name3.id" +
+                                            "from name1, name2, name3" +
+                                            "where name1.lastname = (@lastname) and " +
+                                            "name2.firstname = (@firstname) and" +
+                                            "name3.patronymic = (@patronymic)"; 
+                    insertCommand.Parameters.AddWithValue("@email", model.Email);
+                    insertCommand.Parameters.AddWithValue("@password", model.Password);
+                    insertCommand.Parameters.AddWithValue("@lastname", model.Surname);
+                    insertCommand.Parameters.AddWithValue("@firstname", model.Name);
+                    insertCommand.Parameters.AddWithValue("@patronymic", model.Patronymic);
+                    insertCommand.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+                
+            }
+            return true;
+        }
 
         public List<Client> GetAllUsers()
         {
@@ -71,12 +108,12 @@ namespace BikeSharing.Models
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
                             PatronymicId = Convert.ToInt32(reader["id_name3"]),
-                            PhoneNumberId = Convert.ToInt32(reader["id_phonenumber"]),
+                            PhoneNumber = reader["phonenumber"].ToString(),
                             AddressId = Convert.ToInt32(reader["id_address"]),
                             PassportId = Convert.ToInt32(reader["id_passport"]),
                             Email = reader["email"].ToString(),
                             Money = Convert.ToInt32(reader["money"])
-                        }); ;
+                        }); 
                     }
                 }
             }
@@ -257,28 +294,6 @@ namespace BikeSharing.Models
                 }
             }
             return streets;
-        }
-
-        public List<PhoneNumber> GetAllPhoneNumbers()
-        {
-            List<PhoneNumber> phoneNumbers = new List<PhoneNumber>();
-            using (MySqlConnection conn = GetConnection())
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from phonenumber", conn);
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        phoneNumbers.Add(new PhoneNumber()
-                        {
-                            Id = Convert.ToInt32(reader["idPhoneNumber"]),
-                            Number = reader["phonenumber"].ToString()
-                        });
-                    }
-                }
-            }
-            return phoneNumbers;
         }
 
         public List<Address> GetAllAddresses()

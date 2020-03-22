@@ -8,6 +8,12 @@ namespace BikeSharing.ViewModels
 {
     public class RegisterModel
     {
+        public string Name { get; set; }
+
+        public string Surname { get; set; }
+
+        public string Patronymic { get; set; }
+
         [Required(ErrorMessage = "Не указан Email")]
         public string Email { get; set; }
 
