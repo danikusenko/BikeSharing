@@ -13,7 +13,7 @@ namespace BikeSharing.Models
         [DataType(DataType.EmailAddress)]
         public string Email { get; set; }
 
-        public float Money { get; set; }
+        public float? Money { get; set; }
 
         [Display(Name = "Имя")]
         public Name2 FirstName { get; set; }

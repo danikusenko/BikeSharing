@@ -17,6 +17,13 @@ namespace BikeSharing.Controllers
 
         public AccountController()
         {
+            /*if (context == null)
+                context = HttpContext.RequestServices.
+                        GetService(typeof(ApplicationContext)) as ApplicationContext;*/
+        }
+
+        void setDbContext()
+        {
             if (context == null)
                 context = HttpContext.RequestServices.
                         GetService(typeof(ApplicationContext)) as ApplicationContext;
@@ -37,6 +44,7 @@ namespace BikeSharing.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginModel model)
         {
+            setDbContext();
             if (ModelState.IsValid)
             {
                 Client client = context.Login(model);
@@ -60,6 +68,7 @@ namespace BikeSharing.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterModel model)
         {
+            setDbContext();
             if (ModelState.IsValid)
             {
                 if (context.Register(model))

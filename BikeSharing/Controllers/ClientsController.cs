@@ -30,17 +30,17 @@ namespace BikeSharing.Controllers
             List<Client> users = (from client in clients
                                   join name in names on client.FirstNameId equals name.Id
                                   join surname in surnames on client.LastNameId equals surname.Id
-                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id                                  
-                                  join address in addresses on client.AddressId equals address.Id
-                                  join passport in passports on client.PassportId equals passport.Id
+                                  //join patronymic in patronymics on client.PatronymicId equals patronymic.Id                                  
+                                  //join address in addresses on client.AddressId equals address.Id
+                                  //join passport in passports on client.PassportId equals passport.Id
                                   select new Client
                                   {
                                       Id = client.Id,
                                       FirstName = name,
                                       LastName = surname,
-                                      Patronymic = patronymic,
-                                      Address = address,
-                                      Passport = passport,
+                                      //Patronymic = patronymic,
+                                      //Address = address,
+                                      //Passport = passport,
                                       Money = client.Money,
                                       Email = client.Email,
                                       PhoneNumber = client.PhoneNumber

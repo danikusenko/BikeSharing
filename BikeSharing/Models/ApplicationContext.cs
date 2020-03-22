@@ -28,10 +28,10 @@ namespace BikeSharing.Models
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@someEmail) " +
-                "and password = (@somePassword)", conn);
-                cmd.Parameters.AddWithValue("@someEmail", model.Email);
-                cmd.Parameters.AddWithValue("@somePassword", model.Password);
+                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email) " +
+                "and password = (@password)", conn);
+                cmd.Parameters.AddWithValue("@email", model.Email);
+                cmd.Parameters.AddWithValue("@password", model.Password);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -71,13 +71,15 @@ namespace BikeSharing.Models
                 using (var transaction = conn.BeginTransaction())
                 {
                     var insertCommand = conn.CreateCommand();
-                    insertCommand.CommandText = "insert into clients (email, password) values(@email,@password)" +
-                                            "insert into clients(id_name1, id_name2, id_name3)" +
-                                            "select name1.id, name2.id, name3.id" +
-                                            "from name1, name2, name3" +
+                    insertCommand.CommandText = "insert ignore into name1 set lastname = (@lastname);" +
+                                                "insert ignore into name2 set firstname = (@firstname);" +
+                                                "insert ignore into name3 set patronymic = (@patronymic);";                    
+                    insertCommand.CommandText += "insert into clients(email, password, id_name1, id_name2, id_name3)" +
+                                            "select @email, @password, name1.id, name2.id, name3.id " +
+                                            "from name1, name2, name3 " +
                                             "where name1.lastname = (@lastname) and " +
-                                            "name2.firstname = (@firstname) and" +
-                                            "name3.patronymic = (@patronymic)"; 
+                                            "name2.firstname = (@firstname) and " +
+                                            "name3.patronymic = (@patronymic);";
                     insertCommand.Parameters.AddWithValue("@email", model.Email);
                     insertCommand.Parameters.AddWithValue("@password", model.Password);
                     insertCommand.Parameters.AddWithValue("@lastname", model.Surname);
@@ -107,13 +109,13 @@ namespace BikeSharing.Models
                             Id = Convert.ToInt32(reader["id"]),
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
-                            PatronymicId = Convert.ToInt32(reader["id_name3"]),
+                            /*PatronymicId = Convert.ToInt32(reader["id_name3"]),
                             PhoneNumber = reader["phonenumber"].ToString(),
                             AddressId = Convert.ToInt32(reader["id_address"]),
-                            PassportId = Convert.ToInt32(reader["id_passport"]),
-                            Email = reader["email"].ToString(),
-                            Money = Convert.ToInt32(reader["money"])
-                        }); 
+                            PassportId = Convert.ToInt32(reader["id_passport"]),*/
+                            Email = reader["email"].ToString()//,
+                           // Money = Convert.ToInt32(reader["money"])
+                        });                         
                     }
                 }
             }
@@ -134,7 +136,7 @@ namespace BikeSharing.Models
                         {
                             Id = Convert.ToInt32(reader["id"]),
                             FirstName = reader["firstname"].ToString()
-                        }); ;
+                        }); 
                     }
                 }
             }
@@ -156,7 +158,7 @@ namespace BikeSharing.Models
                         {
                             Id = Convert.ToInt32(reader["id"]),
                             LastName = reader["lastname"].ToString()
-                        }); ;
+                        }); 
                     }
                 }
             }
