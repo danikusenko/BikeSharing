@@ -15,6 +15,8 @@ namespace BikeSharing.Models
 
         public float? Money { get; set; }
 
+        public string Role { get; set; }
+
         [Display(Name = "Имя")]
         public Name2 FirstName { get; set; }
         public int FirstNameId { get; set; }

@@ -3,10 +3,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using BikeSharing.Models;
+using BikeSharing.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BikeSharing.Controllers
 {
+    [Authorize(Roles = "Администратор")]
     public class ClientsController : Controller
     {
         private ApplicationContext context;
@@ -59,6 +63,28 @@ namespace BikeSharing.Controllers
             setDbContext();
             context.DeleteUser(id);
             return RedirectToAction("Index");
+        }
+
+        [HttpGet]
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Create(RegisterModel model)
+        {
+            setDbContext();
+            if (ModelState.IsValid)
+            {
+                Client client = context.Register(model);
+                if (client != null)
+                    return RedirectToAction("Index", "Clients");
+                else
+                    ModelState.AddModelError("", "Некорректные логин и(или) пароль");
+            }
+            return View(model);
         }
     }
 }

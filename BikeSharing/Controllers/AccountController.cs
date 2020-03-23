@@ -50,7 +50,7 @@ namespace BikeSharing.Controllers
                 Client client = context.Login(model);
                 if (client != null)
                 {
-                    await Authenticate(model.Email);
+                    await Authenticate(client);
                     return RedirectToAction("Index", "Home");
                 }
                 ModelState.AddModelError("", "Некорректные логин и(или) пароль");
@@ -71,24 +71,28 @@ namespace BikeSharing.Controllers
             setDbContext();
             if (ModelState.IsValid)
             {
-                if (context.Register(model))
+                Client client = context.Register(model);
+                if (client != null)
                 {
-                    await Authenticate(model.Email);
+                    await Authenticate(client);
                     return RedirectToAction("Index", "Home");
                 }
                 else
+                {                    
                     ModelState.AddModelError("", "Некорректные логин и(или) пароль");
-            }            
+                }
+            }
             return View(model);
         }
-        
-        private async Task Authenticate(string userName)
-        {            
+
+        private async Task Authenticate(Client client)
+        {
             var claims = new List<Claim>
             {
-                new Claim(ClaimsIdentity.DefaultNameClaimType, userName)
-            };            
-            ClaimsIdentity id = new ClaimsIdentity(claims, "ApplicationCookie", ClaimsIdentity.DefaultNameClaimType, ClaimsIdentity.DefaultRoleClaimType);            
+                new Claim(ClaimsIdentity.DefaultNameClaimType, client.Email),
+                new Claim(ClaimsIdentity.DefaultRoleClaimType, client.Role)
+            };
+            ClaimsIdentity id = new ClaimsIdentity(claims, "ApplicationCookie", ClaimsIdentity.DefaultNameClaimType, ClaimsIdentity.DefaultRoleClaimType);
             await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(id));
         }
 

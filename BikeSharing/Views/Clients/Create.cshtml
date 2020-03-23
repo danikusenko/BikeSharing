@@ -1,0 +1,56 @@
+﻿@model BikeSharing.ViewModels.RegisterModel
+
+@{
+    ViewData["Title"] = "Create";
+}
+
+<h1>Добавление пользователя</h1>
+
+<hr />
+<div class="row">
+    <div class="col-md-4">
+        <form asp-action="Create">
+            <div class="validation" asp-validation-summary="ModelOnly" />
+            <div>
+                <div>
+                    <label asp-for="Email">Введите Email</label><br />
+                    <input type="text" asp-for="Email" />
+                    <span asp-validation-for="Email" />
+                </div>
+                <div>
+                    <label asp-for="Surname">Введите Фамилию</label><br />
+                    <input type="text" asp-for="Surname" />
+                    <span asp-validation-for="Surname" />
+                </div>
+                <div>
+                    <label asp-for="Name">Введите Имя</label><br />
+                    <input type="text" asp-for="Name" />
+                    <span asp-validation-for="Name" />
+                </div>
+                <div>
+                    <label asp-for="Patronymic">Введите Отчество</label><br />
+                    <input type="text" asp-for="Patronymic" />
+                    <span asp-validation-for="Patronymic" />
+                </div>
+                <div>
+                    <label asp-for="Password">Введите пароль</label><br />
+                    <input asp-for="Password" />
+                    <span asp-validation-for="Password" />
+                </div>
+                <div>
+                    <label asp-for="ConfirmPassword">Повторите пароль</label><br />
+                    <input asp-for="ConfirmPassword" />
+                    <span asp-validation-for="ConfirmPassword" />
+                </div>
+                <div>
+                    <input type="submit" value="Добавить пользователя" />
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div>
+    <a asp-action="Index">Вернуться к списку пользователей</a>
+</div>
+
