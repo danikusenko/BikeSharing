@@ -41,12 +41,12 @@ namespace BikeSharing.Models
                             Id = Convert.ToInt32(reader["id"]),
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
-                            PatronymicId = Convert.ToInt32(reader["id_name3"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
                             PhoneNumber = reader["phonenumber"].ToString(),
-                            AddressId = Convert.ToInt32(reader["id_address"]),
-                            PassportId = Convert.ToInt32(reader["id_passport"]),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
-                            Money = Convert.ToInt32(reader["money"])
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
                         };
                     }
                 }
@@ -59,13 +59,13 @@ namespace BikeSharing.Models
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select email from clients", conn);                
+                MySqlCommand cmd = new MySqlCommand("select email from clients", conn);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        if (reader["email"].ToString() == model.Email)                        
-                            return false;                        
+                        if (reader["email"].ToString() == model.Email)
+                            return false;
                     }
                 }
                 using (var transaction = conn.BeginTransaction())
@@ -73,7 +73,7 @@ namespace BikeSharing.Models
                     var insertCommand = conn.CreateCommand();
                     insertCommand.CommandText = "insert ignore into name1 set lastname = (@lastname);" +
                                                 "insert ignore into name2 set firstname = (@firstname);" +
-                                                "insert ignore into name3 set patronymic = (@patronymic);";                    
+                                                "insert ignore into name3 set patronymic = (@patronymic);";
                     insertCommand.CommandText += "insert into clients(email, password, id_name1, id_name2, id_name3)" +
                                             "select @email, @password, name1.id, name2.id, name3.id " +
                                             "from name1, name2, name3 " +
@@ -88,11 +88,26 @@ namespace BikeSharing.Models
                     insertCommand.ExecuteNonQuery();
                     transaction.Commit();
                 }
-                
+
             }
             return true;
         }
 
+        public void DeleteUser(string id)
+        {
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                using (var transaction = conn.BeginTransaction())
+                {
+                    var insertCommand = conn.CreateCommand();
+                    insertCommand.CommandText = "delete from clients where id = (@id);";
+                    insertCommand.Parameters.AddWithValue("@id", id);
+                    insertCommand.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+            }
+        }
         public List<Client> GetAllUsers()
         {
             List<Client> clients = new List<Client>();
@@ -109,13 +124,13 @@ namespace BikeSharing.Models
                             Id = Convert.ToInt32(reader["id"]),
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
-                            /*PatronymicId = Convert.ToInt32(reader["id_name3"]),
-                            PhoneNumber = reader["phonenumber"].ToString(),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"]),
+                            /*PhoneNumber = reader["phonenumber"].ToString(),
                             AddressId = Convert.ToInt32(reader["id_address"]),
                             PassportId = Convert.ToInt32(reader["id_passport"]),*/
                             Email = reader["email"].ToString()//,
-                           // Money = Convert.ToInt32(reader["money"])
-                        });                         
+                                                              // Money = Convert.ToInt32(reader["money"])
+                        });
                     }
                 }
             }
@@ -136,7 +151,7 @@ namespace BikeSharing.Models
                         {
                             Id = Convert.ToInt32(reader["id"]),
                             FirstName = reader["firstname"].ToString()
-                        }); 
+                        });
                     }
                 }
             }
@@ -158,7 +173,7 @@ namespace BikeSharing.Models
                         {
                             Id = Convert.ToInt32(reader["id"]),
                             LastName = reader["lastname"].ToString()
-                        }); 
+                        });
                     }
                 }
             }
