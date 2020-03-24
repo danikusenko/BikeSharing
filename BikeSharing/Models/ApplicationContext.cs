@@ -1,4 +1,5 @@
 ﻿using BikeSharing.ViewModels;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using System;
@@ -22,16 +23,36 @@ namespace BikeSharing.Models
             return new MySqlConnection(ConnectionString);
         }
 
+        public bool CheckPassword(LoginModel model, Client client, MySqlCommand command)
+        {
+            string hashedPassword = null;
+            PasswordHasher<Client> hasher = new PasswordHasher<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();                
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                        hashedPassword = reader["password"].ToString();
+                }
+            }
+            if (hasher.VerifyHashedPassword(client, hashedPassword, model.Password) != 0)
+                return true;
+            else
+                return false;
+        }
+
         public Client Login(LoginModel model)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email) " +
-                "and password = (@password)", conn);
+                PasswordHasher<Client> hasher = new PasswordHasher<Client>();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email);", conn);
                 cmd.Parameters.AddWithValue("@email", model.Email);
-                cmd.Parameters.AddWithValue("@password", model.Password);
+                if (!CheckPassword(model, client, cmd))
+                    return null;
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -73,6 +94,7 @@ namespace BikeSharing.Models
                 }
                 using (var transaction = conn.BeginTransaction())
                 {
+                    PasswordHasher<Client> hasher = new PasswordHasher<Client>();
                     var insertCommand = conn.CreateCommand();
                     insertCommand.CommandText = "insert ignore into name1 set lastname = (@lastname);" +
                                                 "insert ignore into name2 set firstname = (@firstname);" +
@@ -85,15 +107,14 @@ namespace BikeSharing.Models
                                             "name3.patronymic = (@patronymic);";
                     insertCommand.Parameters.AddWithValue("@user", "Пользователь");
                     insertCommand.Parameters.AddWithValue("@email", model.Email);
-                    insertCommand.Parameters.AddWithValue("@password", model.Password);
+                    insertCommand.Parameters.AddWithValue("@password", hasher.HashPassword(client, model.Password));
                     insertCommand.Parameters.AddWithValue("@lastname", model.Surname);
                     insertCommand.Parameters.AddWithValue("@firstname", model.Name);
-                    insertCommand.Parameters.AddWithValue("@patronymic", model.Patronymic);                    
+                    insertCommand.Parameters.AddWithValue("@patronymic", model.Patronymic);
                     insertCommand.CommandText += "select LAST_INSERT_ID();";
                     newId = Convert.ToInt32(insertCommand.ExecuteScalar());
                     transaction.Commit();
                 }
-                Console.WriteLine("newId" + newId);
                 MySqlCommand command = new MySqlCommand("select * from clients where id = (@newId);", conn);
                 command.Parameters.AddWithValue("@newId", newId);
                 using (var reader = command.ExecuteReader())
