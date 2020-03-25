@@ -86,5 +86,28 @@ namespace BikeSharing.Controllers
             }
             return View(model);
         }
+
+        [HttpGet]
+        public IActionResult Block(string id)
+        {
+            setDbContext();
+            Client client = context.GetClientById(id);             
+            if (client != null)
+            {
+                BlockingViewModel model = new BlockingViewModel
+                {
+                    Id = client.Id,
+                    Email = client.Email/*,
+                    Permanently = client.Blocking.Permanently,
+                    ExpirationDate = client.Blocking.ExpirationDate*/
+                };
+                return View(model);
+            }
+            else
+                return RedirectToAction("Index", "Clients");            
+        }
+
+        [HttpPost]
+        public IActionResult Block()
     }
 }

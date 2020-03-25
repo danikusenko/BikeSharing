@@ -57,6 +57,8 @@ namespace BikeSharing.Models
                 {
                     while (reader.Read())
                     {
+                        if (reader["id_blocking"] != DBNull.Value)
+                            return null;
                         client = new Client()
                         {
                             Id = Convert.ToInt32(reader["id"]),
@@ -132,7 +134,8 @@ namespace BikeSharing.Models
                             PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
                             Role = reader["role"].ToString(),
-                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = null
                         };
                     }
                 }
@@ -185,14 +188,14 @@ namespace BikeSharing.Models
             return clients;
         }
 
-        public Client GetClientByEmail(string email)
+        public Client GetClientById(string id)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email);", conn);
-                cmd.Parameters.AddWithValue("@email", email);
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id = (@id);", conn);
+                cmd.Parameters.AddWithValue("@id", id);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -207,7 +210,8 @@ namespace BikeSharing.Models
                             AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
                             PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
-                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
                         };
                     }
                 }

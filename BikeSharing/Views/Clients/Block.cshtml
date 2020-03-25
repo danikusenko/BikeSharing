@@ -1,0 +1,58 @@
+﻿@model BikeSharing.ViewModels.BlockingViewModel
+@{
+    ViewData["Title"] = "Block";
+}
+
+<h1>Блокировка пользователя</h1>
+<form method="post">
+    <div class="form-group row">
+        <label for="inputEmail3" class="col-sm-2 col-form-label">Email</label>
+        <div class="col-sm-10">
+            <label><b>@Model.Email</b></label>
+        </div>
+    </div>
+    <fieldset class="form-group">
+        <div class="row">
+            <label class="col-form-label col-sm-2 pt-0">Срок блокировки</label>
+            <div class="col-sm-10">
+                <input type="number" min="1" value="1" />
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios1" value="option1" checked>
+                    <label class="form-check-label" for="gridRadios1">
+                        Час(ов)
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios2" value="option2">
+                    <label class="form-check-label" for="gridRadios2">
+                        День(дней)
+                    </label>
+                </div>
+                <div class="form-check disabled">
+                    <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios3" value="option3">
+                    <label class="form-check-label" for="gridRadios3">
+                        Месяц(месяцев)
+                    </label>
+                </div>
+                <div class="form-check disabled">
+                    <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios4" value="option4">
+                    <label class="form-check-label" for="gridRadios4">
+                        Год(лет)
+                    </label>
+                </div>
+                <div class="form-check disabled">
+                    <input class="form-check-input" type="radio" name="gridRadios" id="gridRadios5" value="option5">
+                    <label class="form-check-label" for="gridRadios5">
+                        Перманентная блокировка
+                    </label>
+                </div>
+            </div>
+        </div>
+    </fieldset>    
+    <div class="form-group row">
+        <div class="col-sm-10">
+            <button type="submit" class="btn btn-primary">Заблокировать</button>
+        </div>
+    </div>
+</form>
+

@@ -38,5 +38,9 @@ namespace BikeSharing.Models
 
         public Passport Passport { get; set; }
         public int? PassportId { get; set; }
+
+        public Blocking Blocking { get; set; }
+
+        public int? BlockingId { get; set; }
     }
 }
