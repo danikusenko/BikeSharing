@@ -29,7 +29,7 @@ namespace BikeSharing.Models
             PasswordHasher<Client> hasher = new PasswordHasher<Client>();
             using (MySqlConnection conn = GetConnection())
             {
-                conn.Open();                
+                conn.Open();
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -158,6 +158,41 @@ namespace BikeSharing.Models
                 }
             }
         }
+
+        public void BlockUser(BlockingViewModel model)
+        {
+            int newId;
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select id_client from blocking", conn);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if (Convert.ToInt32(reader["id_client"]) == model.Id)
+                            return;
+                    }
+                }
+                using (var transaction = conn.BeginTransaction())
+                {
+                    var insertCommand = conn.CreateCommand();
+                    insertCommand.CommandText = "insert into blocking(id_client, permanently,expirationdate)" +
+                        "values (@id_client, @permanently, @expirationdate);";
+                    insertCommand.Parameters.AddWithValue("@id_client", model.Id);
+                    insertCommand.Parameters.AddWithValue("@permanently", model.Permanently);
+                    insertCommand.Parameters.AddWithValue("@expirationdate", model.ExpirationDate);
+                    insertCommand.CommandText += "select last_insert_id();";
+                    newId = Convert.ToInt32(insertCommand.ExecuteScalar());
+                    insertCommand.CommandText = "update clients set id_blocking = (@newId) " +
+                        "where id = (@id_client);";
+                    insertCommand.Parameters.AddWithValue("@newId", newId);
+                    insertCommand.ExecuteScalar();
+                    transaction.Commit();
+                }
+            }
+        }
+
         public List<Client> GetAllUsers()
         {
             List<Client> clients = new List<Client>();
@@ -180,6 +215,7 @@ namespace BikeSharing.Models
                             PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
                             Role = reader["role"].ToString(),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
                             Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
                         });
                     }

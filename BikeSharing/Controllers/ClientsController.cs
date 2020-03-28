@@ -34,7 +34,7 @@ namespace BikeSharing.Controllers
             List<Client> users = (from client in clients
                                   join name in names on client.FirstNameId equals name.Id
                                   join surname in surnames on client.LastNameId equals surname.Id
-                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id
+                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id                                  
                                   //join address in addresses on client.AddressId equals address.Id
                                   //join passport in passports on client.PassportId equals passport.Id
                                   select new Client
@@ -47,7 +47,8 @@ namespace BikeSharing.Controllers
                                       //Passport = passport,
                                       Money = client.Money,
                                       Email = client.Email,
-                                      PhoneNumber = client.PhoneNumber
+                                      PhoneNumber = client.PhoneNumber,
+                                      BlockingId = client.BlockingId
 
                                   }).ToList<Client>();
             return users;
@@ -91,7 +92,7 @@ namespace BikeSharing.Controllers
         public IActionResult Block(string id)
         {
             setDbContext();
-            Client client = context.GetClientById(id);             
+            Client client = context.GetClientById(id);
             if (client != null)
             {
                 BlockingViewModel model = new BlockingViewModel
@@ -104,10 +105,36 @@ namespace BikeSharing.Controllers
                 return View(model);
             }
             else
-                return RedirectToAction("Index", "Clients");            
+                return RedirectToAction("Index", "Clients");
         }
 
         [HttpPost]
-        public IActionResult Block()
+        public IActionResult Block(int unit, BlockingViewModel model, string blocking)
+        {
+            setDbContext();
+            if (blocking == "permanently")
+                model.Permanently = true;
+            else
+            {
+                model.Permanently = false;
+                switch (blocking)
+                {
+                    case "hours":
+                        model.ExpirationDate = DateTime.Now.AddHours(unit);
+                        break;
+                    case "days":
+                        model.ExpirationDate = DateTime.Now.AddDays(unit);
+                        break;
+                    case "months":
+                        model.ExpirationDate = DateTime.Now.AddMonths(unit);
+                        break;
+                    case "years":
+                        model.ExpirationDate = DateTime.Now.AddYears(unit);
+                        break;
+                }
+            }
+            context.BlockUser(model);
+            return RedirectToAction("Index", "Clients");
+        }
     }
 }
