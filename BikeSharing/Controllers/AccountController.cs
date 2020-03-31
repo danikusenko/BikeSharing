@@ -35,6 +35,12 @@ namespace BikeSharing.Controllers
         }
 
         [HttpGet]
+        public IActionResult Ban()
+        {
+            return View();
+        }
+
+        [HttpGet]
         public IActionResult Login()
         {
             return View();
@@ -50,8 +56,13 @@ namespace BikeSharing.Controllers
                 Client client = context.Login(model);
                 if (client != null)
                 {
-                    await Authenticate(client);
-                    return RedirectToAction("Index", "Home");
+                    if (client.BlockingId != null)
+                        return RedirectToAction("Ban", "Account");
+                    else
+                    {
+                        await Authenticate(client);
+                        return RedirectToAction("Index", "Home");
+                    }
                 }
                 ModelState.AddModelError("", "Некорректные логин и(или) пароль");
             }
@@ -78,7 +89,7 @@ namespace BikeSharing.Controllers
                     return RedirectToAction("Index", "Home");
                 }
                 else
-                {                    
+                {
                     ModelState.AddModelError("", "Некорректные логин и(или) пароль");
                 }
             }

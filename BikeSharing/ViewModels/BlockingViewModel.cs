@@ -11,11 +11,7 @@ namespace BikeSharing.ViewModels
         public int Id { get; set; }
         public string Email { get; set; }
         public bool? Permanently { get; set; }
-        public DateTime? ExpirationDate { get; set; }
-
-        /*[BindProperty]
-        public string Gender { get; set; };
-        public string[] Genders = new[] { "Male", "Female", "Unspecified" };*/
+        public DateTime? ExpirationDate { get; set; }        
     }
 }
 

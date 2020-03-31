@@ -7,6 +7,7 @@ using BikeSharing.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authentication.Cookies;
 
 namespace BikeSharing.Controllers
 {
@@ -34,7 +35,7 @@ namespace BikeSharing.Controllers
             List<Client> users = (from client in clients
                                   join name in names on client.FirstNameId equals name.Id
                                   join surname in surnames on client.LastNameId equals surname.Id
-                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id                                  
+                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id
                                   //join address in addresses on client.AddressId equals address.Id
                                   //join passport in passports on client.PassportId equals passport.Id
                                   select new Client
@@ -109,7 +110,7 @@ namespace BikeSharing.Controllers
         }
 
         [HttpPost]
-        public IActionResult Block(int unit, BlockingViewModel model, string blocking)
+        public async Task<IActionResult> Block(int unit, BlockingViewModel model, string blocking)
         {
             setDbContext();
             if (blocking == "permanently")
@@ -134,6 +135,15 @@ namespace BikeSharing.Controllers
                 }
             }
             context.BlockUser(model);
+            //await HttpContext.SignOutAsync(CookieAuthenticationDefaults.LoginPath("fs"));
+            return RedirectToAction("Index", "Clients");
+        }
+
+        [HttpPost]
+        public IActionResult Unblock(string id)
+        {
+            setDbContext();
+            context.UnblockUser(id);
             return RedirectToAction("Index", "Clients");
         }
     }

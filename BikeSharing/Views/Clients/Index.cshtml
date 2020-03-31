@@ -46,18 +46,20 @@
                 <td>
                     <form asp-action="Delete" asp-route-id="@item.Id" method="post">
                         <a class="btn btn-sm btn-primary" asp-action="ChangeRole" asp-route-id="@item.Id">Права доступа</a>
-                        @if (item.BlockingId == null)
-                        {                            
-                            <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
-                        }
-                        else
-                        {
-                            <a class="btn btn-sm btn-success" asp-action="Block" asp-route-id="@item.Id">Разблокировать пользователя</a>
-                        }
                         <button type="submit" class="btn btn-sm btn-danger">
                             Удалить пользователя
                         </button>
                     </form>
+                    <form asp-action="Unblock" asp-route-id="@item.Id" method="post">
+                        @if (item.BlockingId == 0)
+                        {
+                            <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
+                        }
+                        else
+                        {
+                            <button type="submit" class="btn btn-sm btn-success">Разблокировать пользователя</button>
+                        }
+                    </form>                    
                 </td>
             </tr>
         }
