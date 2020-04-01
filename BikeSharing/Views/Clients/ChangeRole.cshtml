@@ -1,0 +1,16 @@
+﻿@model BikeSharing.ViewModels.ChangeRoleViewModel
+
+<h2><span class="text-info">Изменение роли для пользователя:</span> @Model.Email</h2>
+
+<form asp-action="ChangeRole" method="post">
+    <input type="hidden" name="id" value="@Model.Id" />
+    <div class="form-group">
+        @foreach (string role in Model.AllRoles)
+        {
+            <input type="radio" name="roles" value="@role"
+                   @(Model.UserRole == role ? "checked=\"checked\"" : "") />@role <br />
+            }
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+

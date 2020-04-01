@@ -90,6 +90,36 @@ namespace BikeSharing.Controllers
         }
 
         [HttpGet]
+        public IActionResult ChangeRole(string id)
+        {
+            setDbContext();
+            Client client = context.GetClientById(id);
+            if (client != null)
+            {
+                ChangeRoleViewModel model = new ChangeRoleViewModel
+                {
+                    Id = client.Id,
+                    Email = client.Email,
+                    UserRole = client.Role
+                };
+                return View(model);
+            }
+            return NotFound();
+        }
+
+        [HttpPost]
+        public IActionResult ChangeRole(string id, string roles)
+        {
+            setDbContext();
+            /*Client client = context.GetClientById(model.Id.ToString());
+            if (client != null)
+                client.Role = roles;*/
+            context.ChangeRole(id,roles);
+            return RedirectToAction("Index", "Clients");
+
+        }
+
+        [HttpGet]
         public IActionResult Block(string id)
         {
             setDbContext();
@@ -99,14 +129,12 @@ namespace BikeSharing.Controllers
                 BlockingViewModel model = new BlockingViewModel
                 {
                     Id = client.Id,
-                    Email = client.Email/*,
-                    Permanently = client.Blocking.Permanently,
-                    ExpirationDate = client.Blocking.ExpirationDate*/
+                    Email = client.Email
                 };
                 return View(model);
             }
             else
-                return RedirectToAction("Index", "Clients");
+                return NotFound();
         }
 
         [HttpPost]

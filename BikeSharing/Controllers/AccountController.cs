@@ -56,7 +56,7 @@ namespace BikeSharing.Controllers
                 Client client = context.Login(model);
                 if (client != null)
                 {
-                    if (client.BlockingId != null)
+                    if (client.BlockingId != 0)
                         return RedirectToAction("Ban", "Account");
                     else
                     {

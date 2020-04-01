@@ -212,6 +212,23 @@ namespace BikeSharing.Models
             }
         }
 
+        public void ChangeRole(string id, string role)
+        {
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                using (var transaction = conn.BeginTransaction())
+                {
+                    var updateCommand = conn.CreateCommand();
+                    updateCommand.CommandText = "update clients set role = (@role) " +
+                        "where id = (@id);";                         
+                    updateCommand.Parameters.AddWithValue("@id", id);
+                    updateCommand.Parameters.AddWithValue("@role", role);                    
+                    updateCommand.ExecuteScalar();
+                    transaction.Commit();
+                }
+            }
+        }
 
         public List<Client> GetAllUsers()
         {
@@ -244,7 +261,7 @@ namespace BikeSharing.Models
             return clients;
         }
 
-        public Client GetClientById(int id)
+        public Client GetClientById(string id)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
@@ -266,6 +283,7 @@ namespace BikeSharing.Models
                             AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
                             PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
                             Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
                             BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
                         };
