@@ -56,7 +56,7 @@ namespace BikeSharing.Models
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
-                    {                        
+                    {
                         client = new Client()
                         {
                             Id = Convert.ToInt32(reader["id"]),
@@ -221,9 +221,9 @@ namespace BikeSharing.Models
                 {
                     var updateCommand = conn.CreateCommand();
                     updateCommand.CommandText = "update clients set role = (@role) " +
-                        "where id = (@id);";                         
+                        "where id = (@id);";
                     updateCommand.Parameters.AddWithValue("@id", id);
-                    updateCommand.Parameters.AddWithValue("@role", role);                    
+                    updateCommand.Parameters.AddWithValue("@role", role);
                     updateCommand.ExecuteScalar();
                     transaction.Commit();
                 }
@@ -483,72 +483,72 @@ namespace BikeSharing.Models
                     {
                         addresses.Add(new Address()
                         {
-                            Id = Convert.ToInt32(reader["id"]),
+                            Id = Convert.ToInt32(reader["id"] != DBNull.Value ? reader["id"] : null),                            
                             HouseNumber = reader["numberhouse"].ToString(),
-                            FlatNumber = reader["flatnumber"].ToString(),
-                            Building = Convert.ToInt32(reader["building"]),
-                            CountryId = Convert.ToInt32(reader["id_contry"]),
-                            CityId = Convert.ToInt32(reader["id_city"]),
-                            StreetId = Convert.ToInt32(reader["id_street"]),
-                            RegionId = Convert.ToInt32(reader["id_region"]),
-                            AreaId = Convert.ToInt32(reader["id_area"]),
+                            FlatNumber = reader["numberflat"].ToString(),
+                            Building = Convert.ToInt32(reader["building"] != DBNull.Value ? reader["building"] : null),
+                            CountryId = Convert.ToInt32(reader["id_country"] != DBNull.Value ? reader["id_country"] : null),
+                            CityId = Convert.ToInt32(reader["id_city"] != DBNull.Value ? reader["id_city"] : null),
+                            StreetId = Convert.ToInt32(reader["id_street"] != DBNull.Value ? reader["id_street"] : null),
+                            RegionId = Convert.ToInt32(reader["id_region"] != DBNull.Value ? reader["id_region"] : null),
+                            AreaId = Convert.ToInt32(reader["id_area"] != DBNull.Value ? reader["id_area"] : null),
                             StreetType = reader["typestreet"].ToString(),
                             CityType = reader["typecity"].ToString()
                         });
-                    }
                 }
             }
+        }
             return addresses;
         }
 
-        public List<IssuingPassport> GetAllIssuingPassports()
+    public List<IssuingPassport> GetAllIssuingPassports()
+    {
+        List<IssuingPassport> issuingPassports = new List<IssuingPassport>();
+        using (MySqlConnection conn = GetConnection())
         {
-            List<IssuingPassport> issuingPassports = new List<IssuingPassport>();
-            using (MySqlConnection conn = GetConnection())
+            conn.Open();
+            MySqlCommand cmd = new MySqlCommand("select * from issuing_passport", conn);
+            using (var reader = cmd.ExecuteReader())
             {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from issuing_passport", conn);
-                using (var reader = cmd.ExecuteReader())
+                while (reader.Read())
                 {
-                    while (reader.Read())
+                    issuingPassports.Add(new IssuingPassport()
                     {
-                        issuingPassports.Add(new IssuingPassport()
-                        {
-                            Id = Convert.ToInt32(reader["id"]),
-                            Name = reader["name"].ToString()
-                        });
-                    }
+                        Id = Convert.ToInt32(reader["id"]),
+                        Name = reader["name"].ToString()
+                    });
                 }
             }
-            return issuingPassports;
         }
-
-        public List<Passport> GetAllPassports()
-        {
-            List<Passport> passports = new List<Passport>();
-            using (MySqlConnection conn = GetConnection())
-            {
-                conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from passport", conn);
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        passports.Add(new Passport()
-                        {
-                            Id = Convert.ToInt32(reader["id"]),
-                            Series = reader["series"].ToString(),
-                            Number = Convert.ToInt32(reader["number"]),
-                            DateIssue = Convert.ToDateTime(reader["dateissue"]),
-                            DateEnd = Convert.ToDateTime(reader["dateend"]),
-                            CountryId = Convert.ToInt32(reader["id_country"]),
-                            Identification = reader["identification"].ToString(),
-                            IssuingPassportId = Convert.ToInt32(reader["id_issuing_passport"])
-                        });
-                    }
-                }
-            }
-            return passports;
-        }
+        return issuingPassports;
     }
+
+    public List<Passport> GetAllPassports()
+    {
+        List<Passport> passports = new List<Passport>();
+        using (MySqlConnection conn = GetConnection())
+        {
+            conn.Open();
+            MySqlCommand cmd = new MySqlCommand("select * from passport", conn);
+            using (var reader = cmd.ExecuteReader())
+            {
+                while (reader.Read())
+                {
+                    passports.Add(new Passport()
+                    {
+                        Id = Convert.ToInt32(reader["id"]),
+                        Series = reader["series"].ToString(),
+                        Number = Convert.ToInt32(reader["number"]),
+                        DateIssue = Convert.ToDateTime(reader["dateissue"]),
+                        DateEnd = Convert.ToDateTime(reader["dateend"]),
+                        CountryId = Convert.ToInt32(reader["id_country"]),
+                        Identification = reader["identification"].ToString(),
+                        IssuingPassportId = Convert.ToInt32(reader["id_issuing_passport"])
+                    });
+                }
+            }
+        }
+        return passports;
+    }
+}
 }

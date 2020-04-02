@@ -1,67 +1,102 @@
-﻿@model IEnumerable<BikeSharing.Models.Client>
+﻿@model BikeSharing.ViewModels.SearchClientViewModel
 
 @{
     ViewData["Title"] = "Index";
 }
 
 <h1>Список пользователей</h1>
-
 <p>
     <a asp-action="Create">Создать пользователя</a>
 </p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.LastName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.FirstName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Patronymic)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Email)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.LastName.LastName)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.FirstName.FirstName)
-                </td>
-                <td>
-                    @Html.DisplayFor(modelItem => item.Patronymic.Patronymic)
-                </td>
-                <td>
-                    <form asp-action="Delete" asp-route-id="@item.Id" method="post">
-                        <a class="btn btn-sm btn-primary" asp-action="ChangeRole" asp-route-id="@item.Id">Права доступа</a>
-                        <button type="submit" class="btn btn-sm btn-danger">
-                            Удалить пользователя
-                        </button>
-                    </form>
-                    <form asp-action="Unblock" asp-route-id="@item.Id" method="post">
-                        @if (item.BlockingId == 0)
-                        {
-                            <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
-                        }
-                        else
-                        {
-                            <button type="submit" class="btn btn-sm btn-success">Разблокировать пользователя</button>
-                        }
-                    </form>                    
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+<div class="row">
+    <div class="col-9">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Clients[0].Email)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Clients[0].LastName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Clients[0].FirstName)
+                    </th>
+                    <th>
+                        @Html.DisplayNameFor(model => model.Clients[0].Patronymic)
+                    </th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Clients)
+                {
+                    <tr>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Email)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.LastName.LastName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.FirstName.FirstName)
+                        </td>
+                        <td>
+                            @Html.DisplayFor(modelItem => item.Patronymic.Patronymic)
+                        </td>
+                        <td>
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post">
+                                <a class="btn btn-sm btn-primary" asp-action="ChangeRole" asp-route-id="@item.Id">Права доступа</a>
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    Удалить пользователя
+                                </button>
+                            </form>
+                            <form asp-action="Unblock" asp-route-id="@item.Id" method="post">
+                                @if (item.BlockingId == 0)
+                                {
+                                    <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
+                                }
+                                else
+                                {
+                                    <button type="submit" class="btn btn-sm btn-success">Разблокировать пользователя</button>
+                                }
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="col-3 bg-info">
+        <form asp-controller="Clients" asp-action="Index" method="get">
+            <br />
+            <p>
+                <input type="text" name="searchString" placeholder="Email">
+            </p>
+            <p>
+                <input type="text" asp-for="SurnameSearch" placeholder="Фамилия">
+            </p>
+            <p>
+                <input type="text" asp-for="NameSearch" placeholder="Имя">
+            </p>
+            <p>
+                <input type="text" asp-for="PatronymicSearch" placeholder="Отчество">
+            </p>
+            <p>
+                <input type="text" asp-for="PhoneSearch" placeholder="Контактный номер">
+            </p>
+            <p>
+                <select asp-for="CountrySearch" asp-items="Model.Countries">
+                    <option value="">Страна</option>
+                </select>
+            </p>
+            <p>
+                <select asp-for="CitySearch" asp-items="Model.Cities">
+                    <option value="">Город</option>
+                </select>
+            </p>
+            <input class="btn btn-block btn-success" type="submit" value="Поиск" />
+            <br />
+        </form>        
+    </div>
+</div>

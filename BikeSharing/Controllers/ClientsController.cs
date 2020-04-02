@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace BikeSharing.Controllers
 {
@@ -32,11 +33,20 @@ namespace BikeSharing.Controllers
             List<Name1> surnames = context.GetAllSurnames();
             List<Name2> names = context.GetAllNames();
             List<Name3> patronymics = context.GetAllPatronymics();
+            List<City> cities = context.GetAllCities();
+            List<Country> countries = context.GetAllCountries();
+            List<Street> streets = context.GetAllStreets();
+            List<Area> areas = context.GetAllAreas();
+            List<Region> regions = context.GetAllRegions();
             List<Client> users = (from client in clients
                                   join name in names on client.FirstNameId equals name.Id
                                   join surname in surnames on client.LastNameId equals surname.Id
                                   join patronymic in patronymics on client.PatronymicId equals patronymic.Id
-                                  //join address in addresses on client.AddressId equals address.Id
+                                  join address in addresses on client.AddressId equals address.Id
+                                  join city in cities on address.CityId equals city.Id
+                                  join country in countries on address.CountryId equals country.Id
+                                  /*join region in regions on address.RegionId equals region.Id
+                                  join area in areas on address.AreaId equals area.Id*/
                                   //join passport in passports on client.PassportId equals passport.Id
                                   select new Client
                                   {
@@ -44,7 +54,11 @@ namespace BikeSharing.Controllers
                                       FirstName = name,
                                       LastName = surname,
                                       Patronymic = patronymic,
-                                      //Address = address,
+                                      Address = new Address
+                                      {
+                                          City = city,
+                                          Country = country
+                                      },                                      
                                       //Passport = passport,
                                       Money = client.Money,
                                       Email = client.Email,
@@ -54,9 +68,62 @@ namespace BikeSharing.Controllers
                                   }).ToList<Client>();
             return users;
         }
-        public IActionResult Index()
+        public IActionResult Index(string citySearch, string countrySearch,
+            string emailSearch, string phoneSearch, string surnameSearch, string nameSearch,
+            string patronymicSearch)
         {
-            return View(GetClients());
+            setDbContext();
+            var clients = from client in GetClients()
+                          select client;
+            var cities = from city in context.GetAllCities()
+                         orderby city.Name
+                         select city.Name;
+            var countries = from country in context.GetAllCountries()
+                            orderby country.Name
+                            select country.Name;
+
+            if (!string.IsNullOrEmpty(emailSearch))
+            {
+                clients = clients.Where(s => s.Email.ToLower().Contains(emailSearch.ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(citySearch))
+            {
+                clients = clients.Where(x => x.Address.City.Name == citySearch);
+            }
+
+            if (!string.IsNullOrEmpty(countrySearch))
+            {
+                clients = clients.Where(x => x.Address.Country.Name == countrySearch);
+            }
+
+            if (!string.IsNullOrEmpty(phoneSearch))
+            {
+                clients = clients.Where(x => x.PhoneNumber == phoneSearch);
+            }
+
+            if (!string.IsNullOrEmpty(surnameSearch))
+            {
+                clients = clients.Where(x => x.LastName.LastName == surnameSearch);
+            }
+
+            if (!string.IsNullOrEmpty(nameSearch))
+            {
+                clients = clients.Where(x => x.FirstName.FirstName == nameSearch);
+            }
+
+            if (!string.IsNullOrEmpty(patronymicSearch))
+            {
+                clients = clients.Where(x => x.Patronymic.Patronymic == patronymicSearch);
+            }
+
+            SearchClientViewModel model = new SearchClientViewModel
+            {
+                Clients = new List<Client>(clients),
+                Cities = new SelectList(cities),
+                Countries = new SelectList(countries)
+            };
+            return View(model);
         }
 
         [HttpPost]
@@ -111,10 +178,7 @@ namespace BikeSharing.Controllers
         public IActionResult ChangeRole(string id, string roles)
         {
             setDbContext();
-            /*Client client = context.GetClientById(model.Id.ToString());
-            if (client != null)
-                client.Role = roles;*/
-            context.ChangeRole(id,roles);
+            context.ChangeRole(id, roles);
             return RedirectToAction("Index", "Clients");
 
         }

@@ -41,6 +41,7 @@ namespace BikeSharing.Models
 
         public Blocking Blocking { get; set; }
 
-        public int? BlockingId { get; set; }
+        public int? BlockingId { get; set; }        
+        
     }
 }
