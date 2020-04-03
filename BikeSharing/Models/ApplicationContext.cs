@@ -99,19 +99,31 @@ namespace BikeSharing.Models
                     var insertCommand = conn.CreateCommand();
                     insertCommand.CommandText = "insert ignore into name1 set lastname = (@lastname);" +
                                                 "insert ignore into name2 set firstname = (@firstname);" +
-                                                "insert ignore into name3 set patronymic = (@patronymic);";
-                    insertCommand.CommandText += "insert into clients(role, email, password, id_name1, id_name2, id_name3)" +
-                                            "select @user, @email, @password, name1.id, name2.id, name3.id " +
-                                            "from name1, name2, name3 " +
+                                                "insert ignore into name3 set patronymic = (@patronymic);" +
+                                                "insert ignore into country set name = (@country);" +
+                                                "insert ignore into city set name = (@city); " +
+                                                "insert ignore into address(id_city,id_country)" +
+                                                "select _city.id, _country.id  from city as _city, country as _country " +
+                                                "where  _city.name = (@city) and " +
+                                                "_country.name = (@country); ";
+                    insertCommand.CommandText += "insert into clients(role, email, password, phonenumber, id_name1, id_name2, id_name3, id_address)" +
+                                            "select @user, @email, @password, @phone_number, name1.id, name2.id, " +
+                                            "name3.id, address.id " +
+                                            "from name1, name2, name3, address " +
                                             "where name1.lastname = (@lastname) and " +
                                             "name2.firstname = (@firstname) and " +
-                                            "name3.patronymic = (@patronymic);";
+                                            "name3.patronymic = (@patronymic) " +
+                                            "and address.id_city = (select city.id from city where name = (@city)) and " +
+                                            "address.id_country = (select country.id from country where name = (@country));";
                     insertCommand.Parameters.AddWithValue("@user", "Пользователь");
                     insertCommand.Parameters.AddWithValue("@email", model.Email);
                     insertCommand.Parameters.AddWithValue("@password", hasher.HashPassword(client, model.Password));
                     insertCommand.Parameters.AddWithValue("@lastname", model.Surname);
                     insertCommand.Parameters.AddWithValue("@firstname", model.Name);
                     insertCommand.Parameters.AddWithValue("@patronymic", model.Patronymic);
+                    insertCommand.Parameters.AddWithValue("@country", model.Country);
+                    insertCommand.Parameters.AddWithValue("@city", model.City);
+                    insertCommand.Parameters.AddWithValue("@phone_number", model.PhoneNumber);
                     insertCommand.CommandText += "select LAST_INSERT_ID();";
                     newId = Convert.ToInt32(insertCommand.ExecuteScalar());
                     transaction.Commit();
@@ -177,17 +189,14 @@ namespace BikeSharing.Models
                 {
                     var insertCommand = conn.CreateCommand();
                     insertCommand.CommandText = "insert into blocking(id_client, permanently,expirationdate)" +
-                        "values (@id_client, @permanently, @expirationdate); " +
-                        "delete from blocking where date_sub(expirationdate,interval 15 second) <= now();";
+                        "values (@id_client, @permanently, @expirationdate); ";
                     insertCommand.Parameters.AddWithValue("@id_client", model.Id);
                     insertCommand.Parameters.AddWithValue("@permanently", model.Permanently);
                     insertCommand.Parameters.AddWithValue("@expirationdate", model.ExpirationDate);
                     insertCommand.CommandText += "select last_insert_id();";
                     newId = Convert.ToInt32(insertCommand.ExecuteScalar());
                     insertCommand.CommandText = "update clients set id_blocking = (@newId) " +
-                        "where id = (@id_client);"; /*+
-                        "update clients set id_blocking = NULL where id in" +
-                        " (select from blocking where(date_sub(expirationdate,interval 15 second) <= now()));";*/
+                        "where id = (@id_client);";
                     insertCommand.Parameters.AddWithValue("@newId", newId);
                     insertCommand.ExecuteScalar();
                     transaction.Commit();
@@ -483,7 +492,7 @@ namespace BikeSharing.Models
                     {
                         addresses.Add(new Address()
                         {
-                            Id = Convert.ToInt32(reader["id"] != DBNull.Value ? reader["id"] : null),                            
+                            Id = Convert.ToInt32(reader["id"] != DBNull.Value ? reader["id"] : null),
                             HouseNumber = reader["numberhouse"].ToString(),
                             FlatNumber = reader["numberflat"].ToString(),
                             Building = Convert.ToInt32(reader["building"] != DBNull.Value ? reader["building"] : null),
@@ -495,60 +504,60 @@ namespace BikeSharing.Models
                             StreetType = reader["typestreet"].ToString(),
                             CityType = reader["typecity"].ToString()
                         });
+                    }
                 }
             }
-        }
             return addresses;
         }
 
-    public List<IssuingPassport> GetAllIssuingPassports()
-    {
-        List<IssuingPassport> issuingPassports = new List<IssuingPassport>();
-        using (MySqlConnection conn = GetConnection())
+        public List<IssuingPassport> GetAllIssuingPassports()
         {
-            conn.Open();
-            MySqlCommand cmd = new MySqlCommand("select * from issuing_passport", conn);
-            using (var reader = cmd.ExecuteReader())
+            List<IssuingPassport> issuingPassports = new List<IssuingPassport>();
+            using (MySqlConnection conn = GetConnection())
             {
-                while (reader.Read())
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from issuing_passport", conn);
+                using (var reader = cmd.ExecuteReader())
                 {
-                    issuingPassports.Add(new IssuingPassport()
+                    while (reader.Read())
                     {
-                        Id = Convert.ToInt32(reader["id"]),
-                        Name = reader["name"].ToString()
-                    });
+                        issuingPassports.Add(new IssuingPassport()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            Name = reader["name"].ToString()
+                        });
+                    }
                 }
             }
+            return issuingPassports;
         }
-        return issuingPassports;
-    }
 
-    public List<Passport> GetAllPassports()
-    {
-        List<Passport> passports = new List<Passport>();
-        using (MySqlConnection conn = GetConnection())
+        public List<Passport> GetAllPassports()
         {
-            conn.Open();
-            MySqlCommand cmd = new MySqlCommand("select * from passport", conn);
-            using (var reader = cmd.ExecuteReader())
+            List<Passport> passports = new List<Passport>();
+            using (MySqlConnection conn = GetConnection())
             {
-                while (reader.Read())
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from passport", conn);
+                using (var reader = cmd.ExecuteReader())
                 {
-                    passports.Add(new Passport()
+                    while (reader.Read())
                     {
-                        Id = Convert.ToInt32(reader["id"]),
-                        Series = reader["series"].ToString(),
-                        Number = Convert.ToInt32(reader["number"]),
-                        DateIssue = Convert.ToDateTime(reader["dateissue"]),
-                        DateEnd = Convert.ToDateTime(reader["dateend"]),
-                        CountryId = Convert.ToInt32(reader["id_country"]),
-                        Identification = reader["identification"].ToString(),
-                        IssuingPassportId = Convert.ToInt32(reader["id_issuing_passport"])
-                    });
+                        passports.Add(new Passport()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            Series = reader["series"].ToString(),
+                            Number = Convert.ToInt32(reader["number"]),
+                            DateIssue = Convert.ToDateTime(reader["dateissue"]),
+                            DateEnd = Convert.ToDateTime(reader["dateend"]),
+                            CountryId = Convert.ToInt32(reader["id_country"]),
+                            Identification = reader["identification"].ToString(),
+                            IssuingPassportId = Convert.ToInt32(reader["id_issuing_passport"])
+                        });
+                    }
                 }
             }
+            return passports;
         }
-        return passports;
     }
-}
 }

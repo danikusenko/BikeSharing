@@ -8,24 +8,39 @@
     <div class="validation" asp-validation-summary="ModelOnly" />
     <div>
         <div>
-            <label asp-for="Email">Введите Email</label><br />
+            <label asp-for="Email">Email</label><br />
             <input type="text" asp-for="Email" />
             <span asp-validation-for="Email" />
         </div>
         <div>
-            <label asp-for="Surname">Введите Фамилию</label><br />
+            <label asp-for="Surname">Фамилия</label><br />
             <input type="text" asp-for="Surname" />
             <span asp-validation-for="Surname" />
         </div>
         <div>
-            <label asp-for="Name">Введите Имя</label><br />
+            <label asp-for="Name">Имя</label><br />
             <input type="text" asp-for="Name" />
             <span asp-validation-for="Name" />
         </div>
         <div>
-            <label asp-for="Patronymic">Введите Отчество</label><br />
+            <label asp-for="Patronymic">Отчество</label><br />
             <input type="text" asp-for="Patronymic" />
             <span asp-validation-for="Patronymic" />
+        </div>
+        <div>
+            <label asp-for="PhoneNumber">Контактный номер</label><br />
+            <input asp-for="PhoneNumber" />
+            <span asp-validation-for="PhoneNumber" />
+        </div>
+        <div>
+            <label asp-for="Country">Страна</label><br />
+            <input asp-for="Country" />
+            <span asp-validation-for="Country" />
+        </div>
+        <div>
+            <label asp-for="City">Город</label><br />
+            <input asp-for="City" />
+            <span asp-validation-for="City" />
         </div>
         <div>
             <label asp-for="Password">Введите пароль</label><br />
