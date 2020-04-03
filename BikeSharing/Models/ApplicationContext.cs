@@ -23,36 +23,16 @@ namespace BikeSharing.Models
             return new MySqlConnection(ConnectionString);
         }
 
-        public bool CheckPassword(LoginModel model, Client client, MySqlCommand command)
-        {
-            string hashedPassword = null;
-            PasswordHasher<Client> hasher = new PasswordHasher<Client>();
-            using (MySqlConnection conn = GetConnection())
-            {
-                conn.Open();
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                        hashedPassword = reader["password"].ToString();
-                }
-            }
-            if (hasher.VerifyHashedPassword(client, hashedPassword, model.Password) != 0)
-                return true;
-            else
-                return false;
-        }
-
-        public Client Login(LoginModel model)
+         public Client Login(LoginModel model)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
             {
-                conn.Open();
-                PasswordHasher<Client> hasher = new PasswordHasher<Client>();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email);", conn);
+                conn.Open();                
+                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email)" +
+                    "and password = md5(@password) and id_blocking is null;", conn);
                 cmd.Parameters.AddWithValue("@email", model.Email);
-                if (!CheckPassword(model, client, cmd))
-                    return null;
+                cmd.Parameters.AddWithValue("@password", model.Password);                
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -94,30 +74,39 @@ namespace BikeSharing.Models
                     }
                 }
                 using (var transaction = conn.BeginTransaction())
-                {
-                    PasswordHasher<Client> hasher = new PasswordHasher<Client>();
+                {                    
                     var insertCommand = conn.CreateCommand();
-                    insertCommand.CommandText = "insert ignore into name1 set lastname = (@lastname);" +
-                                                "insert ignore into name2 set firstname = (@firstname);" +
-                                                "insert ignore into name3 set patronymic = (@patronymic);" +
-                                                "insert ignore into country set name = (@country);" +
-                                                "insert ignore into city set name = (@city); " +
+                    insertCommand.CommandText = "insert into name1(lastname) select @lastname from " +
+                                                "(select @lastname) as _surname where not exists" +
+                                                "(select lastname from name1 where lastname = (@lastname)); " +
+                                                "insert into name2(firstname) select @firstname from " +
+                                                "(select @firstname) as _name  where not exists" +
+                                                "(select firstname from name2 where firstname = (@firstname)); " +
+                                                "insert into name3(patronymic) select @patronymic from " +
+                                                "(select @patronymic) as _patronymic  where not exists" +
+                                                "(select patronymic from name3 where patronymic = (@patronymic)); " +
+                                                "insert into country(name) select @country from (select @country) " +
+                                                "as _country where not exists" +
+                                                "(select name from country where name = (@country)); " +
+                                                "insert into city(name) select(@city) from (select @city) " +
+                                                "as _city where not exists" +
+                                                "(select name from city where name = (@city)); " +
                                                 "insert ignore into address(id_city,id_country)" +
                                                 "select _city.id, _country.id  from city as _city, country as _country " +
                                                 "where  _city.name = (@city) and " +
                                                 "_country.name = (@country); ";
                     insertCommand.CommandText += "insert into clients(role, email, password, phonenumber, id_name1, id_name2, id_name3, id_address)" +
-                                            "select @user, @email, @password, @phone_number, name1.id, name2.id, " +
+                                            "select @user, @email, md5(@password), @phone_number, name1.id, name2.id, " +
                                             "name3.id, address.id " +
                                             "from name1, name2, name3, address " +
                                             "where name1.lastname = (@lastname) and " +
                                             "name2.firstname = (@firstname) and " +
                                             "name3.patronymic = (@patronymic) " +
-                                            "and address.id_city = (select city.id from city where name = (@city)) and " +
-                                            "address.id_country = (select country.id from country where name = (@country));";
+                                            "and address.id_city in (select city.id from city where name = (@city)) and " +
+                                            "address.id_country in (select country.id from country where name = (@country)) limit 1; ";
                     insertCommand.Parameters.AddWithValue("@user", "Пользователь");
                     insertCommand.Parameters.AddWithValue("@email", model.Email);
-                    insertCommand.Parameters.AddWithValue("@password", hasher.HashPassword(client, model.Password));
+                    insertCommand.Parameters.AddWithValue("@password", model.Password);
                     insertCommand.Parameters.AddWithValue("@lastname", model.Surname);
                     insertCommand.Parameters.AddWithValue("@firstname", model.Name);
                     insertCommand.Parameters.AddWithValue("@patronymic", model.Patronymic);
