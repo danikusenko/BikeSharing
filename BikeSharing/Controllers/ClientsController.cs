@@ -24,57 +24,14 @@ namespace BikeSharing.Controllers
                     GetService(typeof(ApplicationContext)) as ApplicationContext;
         }
 
-        List<Client> GetClients()
-        {
-            setDbContext();
-            List<Client> clients = context.GetAllUsers();
-            List<Address> addresses = context.GetAllAddresses();
-            List<Passport> passports = context.GetAllPassports();
-            List<Name1> surnames = context.GetAllSurnames();
-            List<Name2> names = context.GetAllNames();
-            List<Name3> patronymics = context.GetAllPatronymics();
-            List<City> cities = context.GetAllCities();
-            List<Country> countries = context.GetAllCountries();
-            List<Street> streets = context.GetAllStreets();
-            List<Area> areas = context.GetAllAreas();
-            List<Region> regions = context.GetAllRegions();
-            List<Client> users = (from client in clients
-                                  join name in names on client.FirstNameId equals name.Id
-                                  join surname in surnames on client.LastNameId equals surname.Id
-                                  join patronymic in patronymics on client.PatronymicId equals patronymic.Id
-                                  join address in addresses on client.AddressId equals address.Id
-                                  join city in cities on address.CityId equals city.Id
-                                  join country in countries on address.CountryId equals country.Id
-                                  /*join region in regions on address.RegionId equals region.Id
-                                  join area in areas on address.AreaId equals area.Id*/
-                                  //join passport in passports on client.PassportId equals passport.Id
-                                  select new Client
-                                  {
-                                      Id = client.Id,
-                                      FirstName = name,
-                                      LastName = surname,
-                                      Patronymic = patronymic,
-                                      Address = new Address
-                                      {
-                                          City = city,
-                                          Country = country
-                                      },                                      
-                                      //Passport = passport,
-                                      Money = client.Money,
-                                      Email = client.Email,
-                                      PhoneNumber = client.PhoneNumber,
-                                      BlockingId = client.BlockingId
-
-                                  }).ToList<Client>();
-            return users;
-        }
         public IActionResult Index(string citySearch, string countrySearch,
             string emailSearch, string phoneSearch, string surnameSearch, string nameSearch,
             string patronymicSearch)
         {
-            setDbContext();
-            var clients = from client in GetClients()
-                          select client;
+            setDbContext();           
+            
+            var clients = from client in context.GetAllClients() select client;
+
             var cities = from city in context.GetAllCities()
                          orderby city.Name
                          select city.Name;

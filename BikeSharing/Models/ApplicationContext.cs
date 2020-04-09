@@ -23,16 +23,16 @@ namespace BikeSharing.Models
             return new MySqlConnection(ConnectionString);
         }
 
-         public Client Login(LoginModel model)
+        public Client Login(LoginModel model)
         {
             Client client = null;
             using (MySqlConnection conn = GetConnection())
             {
-                conn.Open();                
+                conn.Open();
                 MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email)" +
                     "and password = md5(@password) and id_blocking is null;", conn);
                 cmd.Parameters.AddWithValue("@email", model.Email);
-                cmd.Parameters.AddWithValue("@password", model.Password);                
+                cmd.Parameters.AddWithValue("@password", model.Password);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -74,7 +74,7 @@ namespace BikeSharing.Models
                     }
                 }
                 using (var transaction = conn.BeginTransaction())
-                {                    
+                {
                     var insertCommand = conn.CreateCommand();
                     insertCommand.CommandText = "insert into name1(lastname) select @lastname from " +
                                                 "(select @lastname) as _surname where not exists" +
@@ -141,6 +141,63 @@ namespace BikeSharing.Models
                 }
             }
             return client;
+        }
+
+        public List<Client> GetAllClients()
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
+                    "clients.money, clients.email, clients.phonenumber, clients.role," +
+                    "name1.lastname as surname, name2.firstname as name, " +
+                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
+                    "from clients join name1 on name1.id = clients.id_name1 " +
+                    "join name2 on name2.id = clients.id_name2 " +
+                    "join name3 on name3.id = clients.id_name3 " +
+                    "join address on address.id = clients.id_address " +
+                    "join country on country.id = address.id_country " +
+                    "join city on city.id = address.id_city;", conn);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstName = new Name2
+                            {
+                                FirstName = reader["name"].ToString()
+                            },
+                            LastName = new Name1
+                            {
+                                LastName = reader["surname"].ToString()
+                            },
+                            Patronymic = new Name3
+                            {
+                                Patronymic = reader["patronymic"].ToString()
+                            },
+                            Address = new Address
+                            {
+                                City = new City
+                                {
+                                    Name = reader["city"].ToString()
+                                },
+                                Country = new Country
+                                {
+                                    Name = reader["country"].ToString()
+                                }
+                            },
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Email = reader["email"].ToString(),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
+                        });
+                    }
+                }
+            }
+            return clients;
         }
 
         public void DeleteUser(string id)
@@ -228,13 +285,16 @@ namespace BikeSharing.Models
             }
         }
 
-        public List<Client> GetAllUsers()
+        
+
+        public List<Client> GetClientsByEmail(string email)
         {
             List<Client> clients = new List<Client>();
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients", conn);
+                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email);", conn);
+                cmd.Parameters.AddWithValue("@email", email);
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -250,8 +310,207 @@ namespace BikeSharing.Models
                             PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
                             Email = reader["email"].ToString(),
                             Role = reader["role"].ToString(),
-                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
-                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByPhoneNumber(string phonenubmer)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where phonenumber = (@phonenumber);", conn);
+                cmd.Parameters.AddWithValue("@phonenumber", phonenubmer);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByCity(string city)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id_address = " +
+                    "(select id from address where id_city = (select id from city where name = " +
+                    "(lower(@city))));", conn);
+                cmd.Parameters.AddWithValue("@city", city);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByCountry(string country)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id_address = " +
+                    "(select id from address where id_country = (select id from country where " +
+                    "name = (lower(@country))));", conn);
+                cmd.Parameters.AddWithValue("@country", country);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByFirstName(string name)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id_name2 = " +
+                    "(select id from name2 where firstname = (lower(@name))); ", conn);
+                cmd.Parameters.AddWithValue("@name", name);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByLastName(string surname)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id_name1 = " +
+                    "(select id from name1 where lastname = (lower(@surname))); ", conn);
+                cmd.Parameters.AddWithValue("@surname", surname);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
+                        });
+                    }
+                }
+            }
+            return clients;
+        }
+
+        public List<Client> GetClientsByPatronymic(string patronymic)
+        {
+            List<Client> clients = new List<Client>();
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from clients where id_name3 = " +
+                    "(select id from name3 where patronymic = (lower(@surname))); ", conn);
+                cmd.Parameters.AddWithValue("@surname", patronymic);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        clients.Add(new Client()
+                        {
+                            Id = Convert.ToInt32(reader["id"]),
+                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
+                            LastNameId = Convert.ToInt32(reader["id_name1"]),
+                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
+                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
+                            Email = reader["email"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
                         });
                     }
                 }
