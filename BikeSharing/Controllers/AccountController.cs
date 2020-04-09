@@ -13,14 +13,7 @@ namespace BikeSharing.Controllers
 {
     public class AccountController : Controller
     {
-        private ApplicationContext context;
-
-        public AccountController()
-        {
-            /*if (context == null)
-                context = HttpContext.RequestServices.
-                        GetService(typeof(ApplicationContext)) as ApplicationContext;*/
-        }
+        private ApplicationContext context;        
 
         void setDbContext()
         {

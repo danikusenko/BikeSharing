@@ -28,57 +28,49 @@ namespace BikeSharing.Controllers
             string emailSearch, string phoneSearch, string surnameSearch, string nameSearch,
             string patronymicSearch)
         {
-            setDbContext();           
-            
-            var clients = from client in context.GetAllClients() select client;
-
-            var cities = from city in context.GetAllCities()
-                         orderby city.Name
-                         select city.Name;
-            var countries = from country in context.GetAllCountries()
-                            orderby country.Name
-                            select country.Name;
+            setDbContext();
+            var clients = context.GetAllClients();                                   
 
             if (!string.IsNullOrEmpty(emailSearch))
             {
-                clients = clients.Where(s => s.Email.ToLower().Contains(emailSearch.ToLower()));
+                clients = context.FilterClientsByEmail(emailSearch.ToLower());
             }
 
             if (!string.IsNullOrEmpty(citySearch))
             {
-                clients = clients.Where(x => x.Address.City.Name == citySearch);
+                clients = context.FilterClientsByCity(citySearch.ToLower());
             }
 
             if (!string.IsNullOrEmpty(countrySearch))
             {
-                clients = clients.Where(x => x.Address.Country.Name == countrySearch);
+                clients = context.FilterClientsByCountry(countrySearch.ToLower());
             }
 
             if (!string.IsNullOrEmpty(phoneSearch))
             {
-                clients = clients.Where(x => x.PhoneNumber == phoneSearch);
+                clients = context.FilterClientsByPhoneNumber(phoneSearch);
             }
 
             if (!string.IsNullOrEmpty(surnameSearch))
             {
-                clients = clients.Where(x => x.LastName.LastName == surnameSearch);
+                clients = context.FilterByLastName(surnameSearch.ToLower());
             }
 
             if (!string.IsNullOrEmpty(nameSearch))
             {
-                clients = clients.Where(x => x.FirstName.FirstName == nameSearch);
+                clients = context.FilterClientsByFirstName(nameSearch.ToLower());
             }
 
             if (!string.IsNullOrEmpty(patronymicSearch))
             {
-                clients = clients.Where(x => x.Patronymic.Patronymic == patronymicSearch);
+                clients = context.FilterClientsByPatronymic(patronymicSearch.ToLower());
             }
 
             SearchClientViewModel model = new SearchClientViewModel
             {
                 Clients = new List<Client>(clients),
-                Cities = new SelectList(cities),
-                Countries = new SelectList(countries)
+                Cities = new SelectList(context.GetAllCities()),
+                Countries = new SelectList(context.GetAllCountries())
             };
             return View(model);
         }
@@ -159,9 +151,10 @@ namespace BikeSharing.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Block(int unit, BlockingViewModel model, string blocking)
+        public IActionResult Block(int unit, BlockingViewModel model, string blocking)
         {
             setDbContext();
+            model.BeginningDate = DateTime.Now;
             if (blocking == "permanently")
                 model.Permanently = true;
             else
@@ -183,8 +176,7 @@ namespace BikeSharing.Controllers
                         break;
                 }
             }
-            context.BlockUser(model);
-            //await HttpContext.SignOutAsync(CookieAuthenticationDefaults.LoginPath("fs"));
+            context.BlockUser(model);            
             return RedirectToAction("Index", "Clients");
         }
 

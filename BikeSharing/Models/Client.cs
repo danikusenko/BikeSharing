@@ -17,6 +17,8 @@ namespace BikeSharing.Models
 
         public string Role { get; set; }
 
+        public string Status { get; set; }
+
         [Display(Name = "Имя")]
         public Name2 FirstName { get; set; }
         public int FirstNameId { get; set; }
