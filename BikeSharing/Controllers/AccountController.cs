@@ -46,18 +46,23 @@ namespace BikeSharing.Controllers
             setDbContext();
             if (ModelState.IsValid)
             {
-                Client client = context.Login(model);
-                if (client != null)
-                {
-                    if (client.BlockingId != 0)
-                        return RedirectToAction("Ban", "Account");
-                    else
+                if(context.Login(model) == 1)
+                {                    
+                    Client client = context.GetClientById(context.GetIdByEmail(model.Email));
+                    if(client != null)
                     {
                         await Authenticate(client);
                         return RedirectToAction("Index", "Home");
                     }
                 }
-                ModelState.AddModelError("", "Некорректные логин и(или) пароль");
+                else if(context.Login(model) == 0)
+                {
+                    ModelState.AddModelError("", "Некорректные логин и(или) пароль");
+                }
+                else if(context.Login(model) == 2)
+                {
+                    return RedirectToAction("Ban", "Account");
+                }                           
             }
             return View(model);
         }

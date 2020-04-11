@@ -24,54 +24,25 @@ namespace BikeSharing.Controllers
                     GetService(typeof(ApplicationContext)) as ApplicationContext;
         }
 
-        public IActionResult Index(string citySearch, string countrySearch,
-            string emailSearch, string phoneSearch, string surnameSearch, string nameSearch,
-            string patronymicSearch)
+        void setEmptyValues(SearchClientViewModel model)
+        {
+            model.EmailSearch = model.EmailSearch ?? "";
+            model.CitySearch = model.CitySearch ?? "";
+            model.CountrySearch = model.CountrySearch ?? "";
+            model.NameSearch = model.NameSearch ?? "";
+            model.SurnameSearch = model.SurnameSearch ?? "";
+            model.PatronymicSearch = model.PatronymicSearch ?? "";
+            model.PhoneSearch = model.PhoneSearch ?? "";
+        }
+
+        public IActionResult Index(SearchClientViewModel model)
         {
             setDbContext();
-            var clients = context.GetAllClients();                                   
-
-            if (!string.IsNullOrEmpty(emailSearch))
-            {
-                clients = context.FilterClientsByEmail(emailSearch.ToLower());
-            }
-
-            if (!string.IsNullOrEmpty(citySearch))
-            {
-                clients = context.FilterClientsByCity(citySearch.ToLower());
-            }
-
-            if (!string.IsNullOrEmpty(countrySearch))
-            {
-                clients = context.FilterClientsByCountry(countrySearch.ToLower());
-            }
-
-            if (!string.IsNullOrEmpty(phoneSearch))
-            {
-                clients = context.FilterClientsByPhoneNumber(phoneSearch);
-            }
-
-            if (!string.IsNullOrEmpty(surnameSearch))
-            {
-                clients = context.FilterByLastName(surnameSearch.ToLower());
-            }
-
-            if (!string.IsNullOrEmpty(nameSearch))
-            {
-                clients = context.FilterClientsByFirstName(nameSearch.ToLower());
-            }
-
-            if (!string.IsNullOrEmpty(patronymicSearch))
-            {
-                clients = context.FilterClientsByPatronymic(patronymicSearch.ToLower());
-            }
-
-            SearchClientViewModel model = new SearchClientViewModel
-            {
-                Clients = new List<Client>(clients),
-                Cities = new SelectList(context.GetAllCities()),
-                Countries = new SelectList(context.GetAllCountries())
-            };
+            setEmptyValues(model);
+            var clients = context.GetAllClients(model);            
+            model.Cities = new SelectList(context.GetAllCities());
+            model.Countries = new SelectList(context.GetAllCountries());
+            model.Clients = new List<Client>(clients);
             return View(model);
         }
 
@@ -176,7 +147,7 @@ namespace BikeSharing.Controllers
                         break;
                 }
             }
-            context.BlockUser(model);            
+            context.BlockUser(model);
             return RedirectToAction("Index", "Clients");
         }
 

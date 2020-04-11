@@ -23,45 +23,31 @@ namespace BikeSharing.Models
             return new MySqlConnection(ConnectionString);
         }
 
-        public Client Login(LoginModel model)
+        public int Login(LoginModel model)
         {
-            Client client = null;
+            int result = 0;
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where email = (@email)" +
-                    "and password = md5(@password) and status = (@status);", conn);
+                MySqlCommand cmd = new MySqlCommand("select (case " +
+                    "when(exists(select * from clients where email = (@email) and password = " +
+                    "md5(@password) and status = @not_blocked)) then 1 " +
+                    "when(exists(select * from clients where email = (@email) " +
+                    "and password = md5(@password) and status = @blocked)) then 2 " +
+                    "else 0 end);", conn);
                 cmd.Parameters.AddWithValue("@email", model.Email);
                 cmd.Parameters.AddWithValue("@password", model.Password);
-                cmd.Parameters.AddWithValue("@status", "Не заблокирован");
-                using (var reader = cmd.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        client = new Client()
-                        {
-                            Id = Convert.ToInt32(reader["id"]),
-                            FirstNameId = Convert.ToInt32(reader["id_name2"]),
-                            LastNameId = Convert.ToInt32(reader["id_name1"]),
-                            PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
-                            PhoneNumber = reader["phonenumber"].ToString(),
-                            AddressId = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : null),
-                            PassportId = Convert.ToInt32(reader["id_passport"] != DBNull.Value ? reader["id_passport"] : null),
-                            Email = reader["email"].ToString(),
-                            Role = reader["role"].ToString(),
-                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
-                            Money = Convert.ToInt32(reader["id_address"] != DBNull.Value ? reader["id_address"] : 0)
-                        };
-                    }
-                }
+                cmd.Parameters.AddWithValue("@not_blocked", "Не заблокирован");
+                cmd.Parameters.AddWithValue("@blocked", "Заблокирован");
+                result = Convert.ToInt32(cmd.ExecuteScalar());
             }
-            return client;
+            return result;
         }
 
         public Client Register(RegisterModel model)
         {
             Client client = null;
-            int newId;            
+            int newId;
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
@@ -145,14 +131,36 @@ namespace BikeSharing.Models
             return client;
         }
 
-        public List<Client> FilterClients(MySqlCommand cmd)
+        public List<Client> GetAllClients(SearchClientViewModel model)
         {
             List<Client> clients = new List<Client>();
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                
-                cmd.Connection = conn;
+                MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
+                     "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
+                     "name1.lastname as surname, name2.firstname as name, " +
+                     "name3.patronymic as patronymic, country.name as country, city.name as city " +
+                     "from clients join name1 on name1.id = clients.id_name1 " +
+                     "join name2 on name2.id = clients.id_name2 " +
+                     "join name3 on name3.id = clients.id_name3 " +
+                     "join address on address.id = clients.id_address " +
+                     "join country on country.id = address.id_country " +
+                     "join city on city.id = address.id_city where email like (lower(@email)) and " +
+                     "phonenumber like (@phonenumber) and id_name2 in " +
+                    "(select id from name2 where firstname like (lower(@name))) and id_name1 in " +
+                    "(select id from name1 where lastname like (lower(@surname))) and id_name3 in " +
+                    "(select id from name3 where patronymic like (lower(@patronymic))) and " +
+                    "id_address in (select id from address where id_city in (select id from city " +
+                    "where name like (lower(@city))) and id_country in (select id from country where " +
+                    "name like (lower(@country))));", conn);
+                cmd.Parameters.AddWithValue("@email", "%" + model.EmailSearch.ToLower() + "%");
+                cmd.Parameters.AddWithValue("@city", "%" + model.CitySearch.ToLower() + "%");
+                cmd.Parameters.AddWithValue("@country", "%" + model.CountrySearch.ToLower() + "%");
+                cmd.Parameters.AddWithValue("@phonenumber", "%" + model.PhoneSearch + "%");
+                cmd.Parameters.AddWithValue("@name", "%" + model.NameSearch.ToLower() + "%");
+                cmd.Parameters.AddWithValue("@surname", "%" + model.SurnameSearch.ToLower() + "%");
+                cmd.Parameters.AddWithValue("@patronymic", "%" + model.PatronymicSearch.ToLower() + "%");
                 using (var reader = cmd.ExecuteReader())
                 {
                     while (reader.Read())
@@ -195,22 +203,6 @@ namespace BikeSharing.Models
             return clients;
         }
 
-        public List<Client> GetAllClients()
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                     "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                     "name1.lastname as surname, name2.firstname as name, " +
-                     "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                     "from clients join name1 on name1.id = clients.id_name1 " +
-                     "join name2 on name2.id = clients.id_name2 " +
-                     "join name3 on name3.id = clients.id_name3 " +
-                     "join address on address.id = clients.id_address " +
-                     "join country on country.id = address.id_country " +
-                     "join city on city.id = address.id_city;");
-            List<Client> clients = FilterClients(cmd);
-            return clients;
-        }
-
         public void DeleteUser(string id)
         {
             using (MySqlConnection conn = GetConnection())
@@ -219,7 +211,8 @@ namespace BikeSharing.Models
                 using (var transaction = conn.BeginTransaction())
                 {
                     var insertCommand = conn.CreateCommand();
-                    insertCommand.CommandText = "delete from clients where id = (@id);";
+                    insertCommand.CommandText = "delete from clients where id = (@id);" +
+                        "delete from blocking where id_client = (@id);";
                     insertCommand.Parameters.AddWithValue("@id", id);
                     insertCommand.ExecuteNonQuery();
                     transaction.Commit();
@@ -300,132 +293,17 @@ namespace BikeSharing.Models
             }
         }
 
-
-
-        public List<Client> FilterClientsByEmail(string email)
+        public string GetIdByEmail(string email)
         {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                     "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                     "name1.lastname as surname, name2.firstname as name, " +
-                     "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                     "from clients join name1 on name1.id = clients.id_name1 " +
-                     "join name2 on name2.id = clients.id_name2 " +
-                     "join name3 on name3.id = clients.id_name3 " +
-                     "join address on address.id = clients.id_address " +
-                     "join country on country.id = address.id_country " +
-                     "join city on city.id = address.id_city where email like (@email);");
-            cmd.Parameters.AddWithValue("@email", "%" + email + "%");
-            List<Client> clients = FilterClients(cmd);
-            return clients;
-        }
-
-        public List<Client> FilterClientsByPhoneNumber(string phonenumber)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                     "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                     "name1.lastname as surname, name2.firstname as name, " +
-                     "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                     "from clients join name1 on name1.id = clients.id_name1 " +
-                     "join name2 on name2.id = clients.id_name2 " +
-                     "join name3 on name3.id = clients.id_name3 " +
-                     "join address on address.id = clients.id_address " +
-                     "join country on country.id = address.id_country " +
-                     "join city on city.id = address.id_city where phonenumber like (@phonenumber);");
-            cmd.Parameters.AddWithValue("@phonenumber", "%" + phonenumber + "%");
-            List<Client> clients = FilterClients(cmd);
-            return clients;
-        }
-
-        public List<Client> FilterClientsByCity(string city)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                    "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                    "name1.lastname as surname, name2.firstname as name, " +
-                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                    "from clients join name1 on name1.id = clients.id_name1 " +
-                    "join name2 on name2.id = clients.id_name2 " +
-                    "join name3 on name3.id = clients.id_name3 " +
-                    "join address on address.id = clients.id_address " +
-                    "join country on country.id = address.id_country " +
-                    "join city on city.id = address.id_city where id_address in " +
-                    "(select id from address where id_city = (select id from city where name = " +
-                    "(lower(@city))));");
-            cmd.Parameters.AddWithValue("@city", city);
-            List<Client> clients = FilterClients(cmd);
-            return clients;
-        }
-
-        public List<Client> FilterClientsByCountry(string country)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                    "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                    "name1.lastname as surname, name2.firstname as name, " +
-                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                    "from clients join name1 on name1.id = clients.id_name1 " +
-                    "join name2 on name2.id = clients.id_name2 " +
-                    "join name3 on name3.id = clients.id_name3 " +
-                    "join address on address.id = clients.id_address " +
-                    "join country on country.id = address.id_country " +
-                    "join city on city.id = address.id_city where id_address in " +
-                    "(select id from address where id_country = (select id from country where " +
-                    "name = (lower(@country))));");
-            cmd.Parameters.AddWithValue("@country", country);
-            List<Client> clients = FilterClients(cmd);
-            return clients;
-        }
-
-        public List<Client> FilterClientsByFirstName(string name)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                    "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                    "name1.lastname as surname, name2.firstname as name, " +
-                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                    "from clients join name1 on name1.id = clients.id_name1 " +
-                    "join name2 on name2.id = clients.id_name2 " +
-                    "join name3 on name3.id = clients.id_name3 " +
-                    "join address on address.id = clients.id_address " +
-                    "join country on country.id = address.id_country " +
-                    "join city on city.id = address.id_city where id_name2 = " +
-                    "(select id from name2 where firstname like (lower(@name))); ");
-            cmd.Parameters.AddWithValue("@name", "%" + name + "%");
-            List<Client> clients = FilterClients(cmd);
-            return clients;           
-        }
-
-        public List<Client> FilterByLastName(string surname)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                    "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                    "name1.lastname as surname, name2.firstname as name, " +
-                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                    "from clients join name1 on name1.id = clients.id_name1 " +
-                    "join name2 on name2.id = clients.id_name2 " +
-                    "join name3 on name3.id = clients.id_name3 " +
-                    "join address on address.id = clients.id_address " +
-                    "join country on country.id = address.id_country " +
-                    "join city on city.id = address.id_city where id_name1 = " +
-                    "(select id from name1 where lastname like (lower(@surname))); ");
-            cmd.Parameters.AddWithValue("@surname", "%" + surname + "%");
-            List<Client> clients = FilterClients(cmd);
-            return clients;            
-        }
-
-        public List<Client> FilterClientsByPatronymic(string patronymic)
-        {
-            MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                    "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
-                    "name1.lastname as surname, name2.firstname as name, " +
-                    "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                    "from clients join name1 on name1.id = clients.id_name1 " +
-                    "join name2 on name2.id = clients.id_name2 " +
-                    "join name3 on name3.id = clients.id_name3 " +
-                    "join address on address.id = clients.id_address " +
-                    "join country on country.id = address.id_country " +
-                    "join city on city.id = address.id_city where id_name3 = " +
-                    "(select id from name3 where patronymic like (lower(@patronymic))); ");
-            cmd.Parameters.AddWithValue("@patronymic", "%" + patronymic + "%");
-            List<Client> clients = FilterClients(cmd);
-            return clients;           
+            int id;
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select id from clients where email = (@email);", conn);
+                cmd.Parameters.AddWithValue("@email", email);
+                id = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+            return id.ToString();
         }
 
         public Client GetClientById(string id)
@@ -581,7 +459,7 @@ namespace BikeSharing.Models
                 {
                     while (reader.Read())
                     {
-                        cities.Add(new string(reader["name"].ToString()));                        
+                        cities.Add(new string(reader["name"].ToString()));
                     }
                 }
             }
@@ -599,7 +477,7 @@ namespace BikeSharing.Models
                 {
                     while (reader.Read())
                     {
-                        countries.Add(new string(reader["name"].ToString()));                        
+                        countries.Add(new string(reader["name"].ToString()));
                     }
                 }
             }
