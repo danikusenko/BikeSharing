@@ -1,0 +1,60 @@
+﻿@model BikeSharing.Models.Client
+<div class="modal-content">
+    <div class="modal-header">
+        <h5 class="modal-title" id="exampleModalLongTitle">Информация о копии пользователя</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+        </button>
+    </div>
+    <div class="modal-body">
+        <table>
+            <tr>
+                <td>Фамилия: </td>
+                <td>@Model.LastName.LastName</td>
+            </tr>
+            <tr>
+                <td>Имя: </td>
+                <td>@Model.FirstName.FirstName</td>
+            </tr>
+            <tr>
+                <td>Отчество: </td>
+                <td>@Model.Patronymic.Patronymic</td>
+            </tr>
+            <tr>
+                <td>Email: </td>
+                <td>@Model.Email</td>
+            </tr>
+            <tr>
+                <td>Мобильный телефон: </td>
+                <td>@Model.PhoneNumber</td>
+            </tr>
+            <tr>
+                <td>Страна: </td>
+                <td>@Model.Address.Country.Name</td>
+            </tr>
+            <tr>
+                <td>Город: </td>
+                <td>@Model.Address.City.Name</td>
+            </tr>
+            <tr>
+                <td>Cтатус: </td>
+                @if (Model.Status == "Заблокирован")
+                {
+                    <td class="text-danger">Заблокирован</td>
+                }
+                else
+                {
+                    <td class="text-success">Не заблокирован</td>
+                }
+            </tr>
+        </table>
+    </div>
+    <div class="modal-footer">
+        <form asp-action="Recovery" method="post" asp-route-id="@Model.Id">
+            <button type="submit" class="btn btn-success">Восстановить</button>
+        </form>
+    </div>
+</div>
+@{
+    Layout = null;
+}

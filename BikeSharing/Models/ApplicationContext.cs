@@ -44,6 +44,52 @@ namespace BikeSharing.Models
             return result;
         }
 
+        public void Recovery(string id)
+        {            
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                string email = "";
+                int id_client = 0;                
+                MySqlCommand cmd = new MySqlCommand("select email, id_client from clients_backup where id = (@id);", conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        email = reader["email"].ToString();
+                        id_client = Convert.ToInt32(reader["id_client"]);                        
+                    }                    
+                }
+                cmd.CommandText = "select email from clients;";
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        if(email == reader["email"].ToString())                        
+                            DeleteUser(GetIdByEmail(email));
+                    }
+                }                
+                using (var transaction = conn.BeginTransaction())
+                {
+                    var insertCommand = conn.CreateCommand();                    
+                    insertCommand.CommandText = "insert into clients(id, id_address, " +
+                        "id_name1, id_name2, id_name3, money, email, password, phonenumber, " +
+                        "role, id_blocking,status) select id_client, id_address, id_name1, " +
+                        "id_name2, id_name3, money, email, password, phonenumber, role, " +
+                        "id_blocking, status from clients_backup where clients_backup.id = (@id);";
+                    insertCommand.CommandText += "insert into blocking(id, permanently, beginningdate, " +
+                            "expirationdate, id_client) select id_blocking, permanently, beginningdate, " +
+                            "expirationdate, id_client from blocking_backup where id_client in " +
+                            "(select id_client from clients_backup where id = (@id) and id_blocking is not null);";
+                    insertCommand.CommandText += "delete from clients_backup where id = (@id);";           
+                    insertCommand.Parameters.AddWithValue("@id", id);
+                    insertCommand.ExecuteNonQuery();
+                    transaction.Commit();
+                }
+            }
+        }
+
         public Client Register(RegisterModel model)
         {
             Client client = null;
@@ -56,8 +102,9 @@ namespace BikeSharing.Models
                 {
                     while (reader.Read())
                     {
-                        if (reader["email"].ToString() == model.Email)
-                            return null;
+                        if (reader["email"].ToString() == model.Email) {                            
+                                return null;
+                        }
                     }
                 }
                 using (var transaction = conn.BeginTransaction())
@@ -106,7 +153,7 @@ namespace BikeSharing.Models
                     transaction.Commit();
                 }
                 MySqlCommand command = new MySqlCommand("select * from clients where id = (@newId);", conn);
-                command.Parameters.AddWithValue("@newId", newId);
+                command.Parameters.AddWithValue("@newId", newId.ToString());
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -131,20 +178,23 @@ namespace BikeSharing.Models
             return client;
         }
 
-        public List<Client> GetAllClients(SearchClientViewModel model)
+        public List<Client> GetAllClients(SearchClientViewModel model, string table)
         {
             List<Client> clients = new List<Client>();
+            string id_clients = "";
+            if (table == "clients_backup")
+                id_clients = " id_client,";
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select clients.id, clients.id_blocking, " +
-                     "clients.money, clients.email, clients.phonenumber, clients.role, clients.status, " +
+                MySqlCommand cmd = new MySqlCommand("select " + table + ".id," + id_clients +
+                     "id_blocking, money, email, phonenumber, role, status, " +
                      "name1.lastname as surname, name2.firstname as name, " +
                      "name3.patronymic as patronymic, country.name as country, city.name as city " +
-                     "from clients join name1 on name1.id = clients.id_name1 " +
-                     "join name2 on name2.id = clients.id_name2 " +
-                     "join name3 on name3.id = clients.id_name3 " +
-                     "join address on address.id = clients.id_address " +
+                     "from " + table + " join name1 on name1.id = " + table + ".id_name1 " +
+                     "join name2 on name2.id = " + table + ".id_name2 " +
+                     "join name3 on name3.id = " + table + ".id_name3 " +
+                     "join address on address.id = " + table + ".id_address " +
                      "join country on country.id = address.id_country " +
                      "join city on city.id = address.id_city where email like (lower(@email)) and " +
                      "phonenumber like (@phonenumber) and id_name2 in " +
@@ -196,6 +246,7 @@ namespace BikeSharing.Models
                             Role = reader["role"].ToString(),
                             Email = reader["email"].ToString(),
                             BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
+                            Deleted = false
                         });
                     }
                 }
@@ -203,18 +254,18 @@ namespace BikeSharing.Models
             return clients;
         }
 
-        public void DeleteUser(string id)
+        public void DeleteUser(string id, string table = "clients")
         {
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
                 using (var transaction = conn.BeginTransaction())
                 {
-                    var insertCommand = conn.CreateCommand();
-                    insertCommand.CommandText = "delete from clients where id = (@id);" +
-                        "delete from blocking where id_client = (@id);";
-                    insertCommand.Parameters.AddWithValue("@id", id);
-                    insertCommand.ExecuteNonQuery();
+                    var deleteCommand = conn.CreateCommand();
+                    deleteCommand.CommandText = "delete from clients where id = (@id);"/* +
+                        "delete from blocking where id_client = (@id);"*/;
+                    deleteCommand.Parameters.AddWithValue("@id", id);
+                    deleteCommand.ExecuteNonQuery();
                     transaction.Commit();
                 }
             }
@@ -306,13 +357,25 @@ namespace BikeSharing.Models
             return id.ToString();
         }
 
-        public Client GetClientById(string id)
+        public Client GetClientByIdForView(string id, string table)
         {
             Client client = null;
+            string id_clients = "";
+            if (table == "clients_backup")
+                id_clients = " id_client,";
             using (MySqlConnection conn = GetConnection())
             {
                 conn.Open();
-                MySqlCommand cmd = new MySqlCommand("select * from clients where id = (@id);", conn);
+                MySqlCommand cmd = new MySqlCommand("select " + table + ".id," + id_clients +
+                     "id_blocking, money, email, phonenumber, role, status, " +
+                     "name1.lastname as surname, name2.firstname as name, " +
+                     "name3.patronymic as patronymic, country.name as country, city.name as city " +
+                     "from " + table + " join name1 on name1.id = " + table + ".id_name1 " +
+                     "join name2 on name2.id = " + table + ".id_name2 " +
+                     "join name3 on name3.id = " + table + ".id_name3 " +
+                     "join address on address.id = " + table + ".id_address " +
+                     "join country on country.id = address.id_country " +
+                     "join city on city.id = address.id_city where " + table + ".id = @id", conn);
                 cmd.Parameters.AddWithValue("@id", id);
                 using (var reader = cmd.ExecuteReader())
                 {
@@ -321,6 +384,60 @@ namespace BikeSharing.Models
                         client = new Client()
                         {
                             Id = Convert.ToInt32(reader["id"]),
+                            FirstName = new Name2
+                            {
+                                FirstName = reader["name"].ToString()
+                            },
+                            LastName = new Name1
+                            {
+                                LastName = reader["surname"].ToString()
+                            },
+                            Patronymic = new Name3
+                            {
+                                Patronymic = reader["patronymic"].ToString()
+                            },
+                            Address = new Address
+                            {
+                                City = new City
+                                {
+                                    Name = reader["city"].ToString()
+                                },
+                                Country = new Country
+                                {
+                                    Name = reader["country"].ToString()
+                                }
+                            },
+                            Status = reader["status"].ToString(),
+                            PhoneNumber = reader["phonenumber"].ToString(),
+                            Role = reader["role"].ToString(),
+                            Email = reader["email"].ToString(),
+                            BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null),
+                            Deleted = false                            
+                        };
+                    }
+                }
+            }
+            return client;
+        }
+
+        public Client GetClientById(string id, string table)
+        {
+            Client client = null;
+            string _id = "id";
+            if (table == "clients_backup")
+                _id = "id_client";
+            using (MySqlConnection conn = GetConnection())
+            {
+                conn.Open();
+                MySqlCommand cmd = new MySqlCommand("select * from " + table + " where " + _id + " = (@id);", conn);
+                cmd.Parameters.AddWithValue("@id", id);
+                using (var reader = cmd.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        client = new Client()
+                        {
+                            Id = Convert.ToInt32(reader[_id]),
                             FirstNameId = Convert.ToInt32(reader["id_name2"]),
                             LastNameId = Convert.ToInt32(reader["id_name1"]),
                             PatronymicId = Convert.ToInt32(reader["id_name3"] != DBNull.Value ? reader["id_name3"] : null),
@@ -333,7 +450,7 @@ namespace BikeSharing.Models
                             BlockingId = Convert.ToInt32(reader["id_blocking"] != DBNull.Value ? reader["id_blocking"] : null)
                         };
                     }
-                }
+                }                
             }
             return client;
         }

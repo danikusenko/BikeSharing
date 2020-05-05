@@ -5,9 +5,12 @@
 }
 
 <h1>Список пользователей</h1>
-<p>
+<div>
     <a asp-action="Create">Создать пользователя</a>
-</p>
+</div>
+<div id="modDialog" class="modal fade" role="dialog" aria-labelledby="exampleModalCenterTitle">
+    <div id="dialogContent" class="modal-dialog modal-dialog-centered"></div>
+</div>
 <div class="row">
     <div class="col-9">
         <table class="table">
@@ -45,22 +48,30 @@
                             @Html.DisplayFor(modelItem => item.Patronymic.Patronymic)
                         </td>
                         <td>
-                            <form asp-action="Delete" asp-route-id="@item.Id" method="post">
-                                <a class="btn btn-sm btn-primary" asp-action="ChangeRole" asp-route-id="@item.Id">Права доступа</a>
-                                <button type="submit" class="btn btn-sm btn-danger">
-                                    Удалить пользователя
-                                </button>
-                            </form>
-                            <form asp-action="Unblock" asp-route-id="@item.Id" method="post">
-                                @if (item.BlockingId == 0)
-                                {
-                                    <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
-                                }
-                                else
-                                {
-                                    <button type="submit" class="btn btn-sm btn-success">Разблокировать пользователя</button>
-                                }
-                            </form>
+                            @if (item.Deleted == false && Model.OutputListUsers == "")
+                            {
+                                <form asp-action="Delete" asp-route-id="@item.Id" method="post">
+                                    <a class="btn btn-sm btn-primary" asp-action="ChangeRole" asp-route-id="@item.Id">Права доступа</a>
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        Удалить пользователя
+                                    </button>
+                                </form>
+                                <form asp-action="Unblock" asp-route-id="@item.Id" method="post">
+                                    @if (item.BlockingId == 0)
+                                    {
+                                        <a class="btn btn-sm btn-warning" asp-action="Block" asp-route-id="@item.Id">Блокировка пользователя</a>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-success">Разблокировать пользователя</button>
+                                    }
+                                </form>
+                            }
+                            else
+                            {
+                                @Html.ActionLink("Информация о копии", "Details",
+                                     new { id = item.Id }, new { @class = "clientItem" })                                                               
+                            }
                         </td>
                     </tr>
                 }
@@ -70,6 +81,11 @@
     <div class="col-3 bg-info">
         <form asp-controller="Clients" asp-action="Index" method="get">
             <br />
+            <p>
+                <select asp-for="OutputListUsers" asp-items="Model.SelectListUsers">
+                    <option value="">Список пользователей</option>
+                </select>
+            </p>
             <p>
                 <input type="text" asp-for="EmailSearch" placeholder="Email">
             </p>
@@ -97,6 +113,23 @@
             </p>
             <input class="btn btn-block btn-success" type="submit" value="Поиск" />
             <br />
-        </form>        
+        </form>
     </div>
 </div>
+@section scripts
+{
+    <script type="text/javascript">
+
+        $(function () {
+            $.ajaxSetup({ cache: false });
+           $(".clientItem").click(function (e) {
+ 
+                e.preventDefault();
+                $.get(this.href, function (data) {
+                    $('#dialogContent').html(data);
+                    $('#modDialog').modal('show');
+                });
+            });
+        })
+    </script>
+}

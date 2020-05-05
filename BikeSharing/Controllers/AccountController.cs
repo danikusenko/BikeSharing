@@ -48,7 +48,7 @@ namespace BikeSharing.Controllers
             {
                 if(context.Login(model) == 1)
                 {                    
-                    Client client = context.GetClientById(context.GetIdByEmail(model.Email));
+                    Client client = context.GetClientById(context.GetIdByEmail(model.Email),"clients");
                     if(client != null)
                     {
                         await Authenticate(client);

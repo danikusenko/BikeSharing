@@ -33,13 +33,18 @@ namespace BikeSharing.Controllers
             model.SurnameSearch = model.SurnameSearch ?? "";
             model.PatronymicSearch = model.PatronymicSearch ?? "";
             model.PhoneSearch = model.PhoneSearch ?? "";
+            model.OutputListUsers = model.OutputListUsers ?? "";
         }
 
         public IActionResult Index(SearchClientViewModel model)
         {
             setDbContext();
             setEmptyValues(model);
-            var clients = context.GetAllClients(model);            
+            List<Client> clients = new List<Client>();
+            if (string.IsNullOrEmpty(model.OutputListUsers))
+                clients = context.GetAllClients(model, "clients");
+            else if (model.OutputListUsers == "Восстановление данных")
+                clients = context.GetAllClients(model, "clients_backup");
             model.Cities = new SelectList(context.GetAllCities());
             model.Countries = new SelectList(context.GetAllCountries());
             model.Clients = new List<Client>(clients);
@@ -80,7 +85,7 @@ namespace BikeSharing.Controllers
         public IActionResult ChangeRole(string id)
         {
             setDbContext();
-            Client client = context.GetClientById(id);
+            Client client = context.GetClientById(id, "clients");
             if (client != null)
             {
                 ChangeRoleViewModel model = new ChangeRoleViewModel
@@ -107,7 +112,7 @@ namespace BikeSharing.Controllers
         public IActionResult Block(string id)
         {
             setDbContext();
-            Client client = context.GetClientById(id);
+            Client client = context.GetClientById(id, "clients");
             if (client != null)
             {
                 BlockingViewModel model = new BlockingViewModel
@@ -156,6 +161,22 @@ namespace BikeSharing.Controllers
         {
             setDbContext();
             context.UnblockUser(id);
+            return RedirectToAction("Index", "Clients");
+        }
+
+        [HttpGet]
+        public IActionResult Details(string id)
+        {
+            setDbContext();            
+            Client client = context.GetClientByIdForView(id,"clients_backup");
+            return PartialView(client);
+        }
+
+        [HttpPost]
+        public IActionResult Recovery(string id)
+        {
+            setDbContext();    
+            context.Recovery(id);
             return RedirectToAction("Index", "Clients");
         }
     }

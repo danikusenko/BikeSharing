@@ -5,7 +5,12 @@ using System.Collections.Generic;
 namespace BikeSharing.ViewModels
 {
     public class SearchClientViewModel
-    {        
+    {       
+
+        public SelectList SelectListUsers = new SelectList(new string[]{ "Восстановление данных" });
+
+        public string OutputListUsers { get; set; }
+
         public List<Client> Clients { get; set; }
 
         public SelectList Cities { get; set; }
@@ -24,6 +29,6 @@ namespace BikeSharing.ViewModels
 
         public string PhoneSearch { get; set; }
 
-        public string EmailSearch { get; set; }        
+        public string EmailSearch { get; set; }
     }
 }
